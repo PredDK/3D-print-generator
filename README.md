@@ -12,7 +12,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Skuffer** | Skuffereol med 1–6 skuffer. Greb (fingerhul, kant eller håndtag), stop, etiketter og rumopdeling. Kan hænge på IKEA SKÅDIS. |
 | **Holder** | Vægholder eller stående blok med huller i forskellige størrelser og former, fx til tandbørster, knive eller værktøj. Tilspidsede huller, drypbakke og montering med skruer, tape eller SKÅDIS. |
 | **Kabel** | Kabelclips til bordkanten eller væggen. Montering med 1–2 skruer, tape eller SKÅDIS. |
-| **Stikdåse** | Holdere til stikdåser: enkelte bøjler, en samlet holder i hele længden eller en skrå stander til bordet. Mål efter din egen dåse, med SKÅDIS-kroge, skruehuller eller ingenting. |
+| **Stikdåse** | Holdere til stikdåser: enkelte bøjler, en samlet holder (2 bøjler forbundet med en bjælke) eller en skrå stander med clips. Mål efter din egen dåse. Montering med SKÅDIS-kroge, skruehuller, magneter, bordkant-klemme eller ingenting. |
 | **Lys** | Fyrfadsholder med stilk til ler/oasis eller med øskner til ståltråd. Almindelige eller maxi-fyrfadslys, flere stk. i samme fil. |
 | **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. |
 
@@ -24,6 +24,7 @@ Alle mål er i mm.
 - **Æske:** printes åben ved 180° med bund og låg fladt på pladen. Print testhængslet først for at finde den rigtige frigang til din printer.
 - **SKÅDIS:** krogene sidder fast på modellen. Holder og skuffeskab printes derfor på hovedet med toppen på printpladen. Pladen regnes som 5 mm tyk, og det kan justeres.
 - **Lys:** udgaven med stilk printes på hovedet, og bunden bygges som en bro. Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt, så brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.
+- **Magneter:** de fleste modeller kan få huller til runde magneter på monteringsfladen. Hullerne er åbne mod fladen, så magneterne limes i.
 - Er noget for stramt eller løst, så justér frigangen. Printerprofilerne giver et godt udgangspunkt.
 
 ## Gem og del
