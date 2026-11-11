@@ -320,6 +320,44 @@ TOOLS.push({id:'indsats',name:'Indsats',dl:'Download STL',
  tips:P=>['Printes som den ligger, med slidserne opad.','Sidder stikkene for stramt eller løst, så justér slidsens bredde med 0,1–0,2 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.'],
 });
 
+// LYS (fyrfadsholder)
+const CANDLE={std:{cd:39.4,ch:12},maxi:{cd:59.6,ch:14}};
+TOOLS.push({id:'lys',name:'Lys',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Type'},
+  {k:'type',l:'Model',type:'select',opts:[['spike','Med stilk (til ler/oasis)'],['eyelet','Med øskner til ståltråd'],['plain','Uden stilk og øskner']],v:'spike'},
+  {k:'count',l:'Antal i filen',min:1,max:12,st:1,v:4},
+  {sec:'Fyrfadslys'},
+  {k:'size',l:'Størrelse',type:'select',opts:[['std','Almindeligt (Ø 38 mm)'],['maxi','Maxi (Ø 58 mm)'],['custom','Egne mål']],v:'std'},
+  {k:'cd',l:'Indvendig diameter',min:20,max:80,st:0.1,v:39.4,csz:true},
+  {k:'ch',l:'Indvendig højde',min:4,max:30,st:0.5,v:12,csz:true},
+  {k:'t',l:'Vægtykkelse',min:1,max:4,st:0.1,v:1.6},
+  {k:'fb',l:'Bundtykkelse',min:1,max:5,st:0.1,v:2},
+  {sec:'Stilk',show:P=>P.type==='spike'},
+  {k:'sl',l:'Længde',min:15,max:120,st:1,v:40,show:P=>P.type==='spike'},
+  {k:'sd',l:'Tykkelse ved bunden',min:3,max:12,st:0.5,v:6,show:P=>P.type==='spike'},
+  {k:'tip',l:'Spidsens tykkelse',min:0.4,max:4,st:0.1,v:1,show:P=>P.type==='spike'},
+  {sec:'Øskner',show:P=>P.type==='eyelet'},
+  {k:'en',l:'Antal øskner',type:'select',opts:[[2,'2 (én i hver side)'],[4,'4 (to i hver side)']],v:2,num:true,show:P=>P.type==='eyelet'},
+  {k:'hd',l:'Hul til ståltråd (Ø)',min:0.8,max:4,st:0.1,v:1.8,show:P=>P.type==='eyelet'},
+  {k:'ew',l:'Øskens bredde',min:4,max:14,st:0.5,v:7,show:P=>P.type==='eyelet'},
+  {k:'ep',l:'Hvor langt den stikker ud',min:3,max:15,st:0.5,v:6,show:P=>P.type==='eyelet'},
+  {k:'et',l:'Øskens tykkelse',min:1.5,max:6,st:0.1,v:3,show:P=>P.type==='eyelet'},
+  {note:'Sikkerhed: brug LED-fyrfadslys. Et brændende fyrfadslys kan blive så varmt, at PLA bliver blødt. Skal der bruges levende lys, så print i PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'},
+ ],
+ onChange(T,k,v){
+   if(k==='size'&&CANDLE[v])for(const [kk,vv] of Object.entries(CANDLE[v]))T.setCtl(kk,vv);
+   if(T.ctrls[k]&&T.ctrls[k].d.csz&&T.P.size!=='custom')T.setCtl('size','custom');},
+ make(P){return buildCandle(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);const o=[],r=Math.max(5,P.cd/2-0.5),h=P.size==='maxi'?22:16;prism(o,circ(0,0,r,64),P.fb,P.fb+h);S.mesh(o,0xf3e7c9,null,true);},
+ files(m,P){return [{name:`fyrfadsholder_${P.type==='spike'?'stilk':P.type==='eyelet'?'oesken':'enkel'}_${P.count}-stk`,tris:candlePrint(m,P)}];},
+ stats(m,P){return [['Udvendig diameter',f1(2*m.Ro)+' mm'],['Højde',f1(m.Ht)+(P.type==='spike'?' + stilk '+f1(P.sl):'')+' mm'],['Antal i filen',P.count]];},
+ tips:P=>[P.type==='spike'?'Printes på hovedet med kanten på pladen og stilken opad (som i filen). Bunden bygges som en bro – det klarer de fleste printere uden support.':'Printes stående som den er – ingen support.',
+   ...(P.type==='eyelet'?['Træk ståltråden gennem øskerne og snor den om grenen eller kransen.']:[]),
+   'Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt – brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'],
+});
+
 // ---------- Kontroller ----------
 const ctl=document.getElementById('controls');
 for(const T of TOOLS){

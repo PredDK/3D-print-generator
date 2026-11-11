@@ -771,6 +771,46 @@ function buildInsert(P){
   return {tris:o,warn,count:cols*rows,cols,rows,depth};
 }
 
+// ================= FYRFADSHOLDER =================
+// keglestub om z-aksen: radius r0 i z0 (øverst) til r1 i z1 (nederst)
+function frustum(o,r0,z0,r1,z1,s=48){
+  const A=circ(0,0,r0,s),B=circ(0,0,Math.max(0.05,r1),s);
+  for(let k=0;k<s;k++){const j=(k+1)%s,p=A[k],q=A[j],a=B[k],b=B[j];
+    Q(o,[a[0],a[1],z1],[b[0],b[1],z1],[q[0],q[1],z0],[p[0],p[1],z0]);
+    T(o,[0,0,z0],[p[0],p[1],z0],[q[0],q[1],z0]);
+    T(o,[0,0,z1],[b[0],b[1],z1],[a[0],a[1],z1]);}
+}
+const rot2=(pts,a)=>pts.map(([x,y])=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)]);
+function buildCandle(P){
+  const o=[],warn=[],Ri=P.cd/2,Ro=Ri+P.t,fb=P.fb,Ht=fb+P.ch,s=96;
+  prism(o,circ(0,0,Ro,s),0,fb);
+  tube(o,circ(0,0,Ro,s),circ(0,0,Ri,s),0,Ht);
+  let reach=Ro,depthBelow=0;
+  if(P.type==='spike'){
+    const rs=P.sd/2,f=Math.max(0.5,Math.min(4,Ro-rs-1));
+    frustum(o,rs+f,0.5,rs,-f);
+    frustum(o,rs,-f+0.3,P.tip/2,-P.sl);
+    depthBelow=P.sl;
+    if(P.sl<2*f+5)warn.push('Stilken er meget kort.');
+  }
+  if(P.type==='eyelet'){
+    const ew=P.ew,hr=P.hd/2+0.15,ext=Math.max(P.ep,ew/2+hr+1.2),hx=Ro+ext-ew/2,x0=Ro-Math.min(1.5,P.t-0.1);
+    const tab=[[x0,-ew/2],[hx,-ew/2]];for(let k=1;k<16;k++){const a=-Math.PI/2+Math.PI*k/16;tab.push([hx+ew/2*Math.cos(a),ew/2*Math.sin(a)]);}tab.push([hx,ew/2],[x0,ew/2]);
+    const hole=circ(hx,0,hr,24);
+    const sp=P.en===4?(ew+3)/(2*Ro):0,angs=P.en===4?[-sp,sp,Math.PI-sp,Math.PI+sp]:[0,Math.PI];
+    for(const a of angs)plate(o,rot2(tab,a),[rot2(hole,a)],0,Math.min(P.et,Ht));
+    reach=Ro+ext;
+  }
+  return {tris:o,warn,Ht,Ro,reach,depthBelow};
+}
+// flere stk. i printretning (med stilk: på hovedet)
+function candlePrint(m,P){
+  const one=P.type==='spike'?flipZ(m.tris,m.Ht):m.tris,n=Math.max(1,P.count|0),cols=Math.ceil(Math.sqrt(n)),pitch=2*m.reach+5,out=[];
+  for(let i=0;i<n;i++){const cx=(i%cols-(cols-1)/2)*pitch,cy=(Math.floor(i/cols)-(Math.ceil(n/cols)-1)/2)*pitch;
+    for(let k=0;k<one.length;k+=3)out.push(one[k]+cx,one[k+1]+cy,one[k+2]);}
+  return out;
+}
+
 /*GEOM-END*/
 // ---------- ZIP (uden komprimering, flere filer) ----------
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
@@ -1092,6 +1132,44 @@ TOOLS.push({id:'indsats',name:'Indsats',dl:'Download STL',
  files(m,P){return [{name:`indsats_${P.kind}_${m.cols}x${m.rows}`,tris:m.tris}];},
  stats(m,P){return [['Mål',[P.W,P.D,P.H].map(f1).join(' × ')],['Slidser',`${m.count} (${m.cols} × ${m.rows})`],['Slids',`${f1(P.sw)} × ${f1(P.stk)} × ${f1(m.depth||P.sd)} mm`]];},
  tips:P=>['Printes som den ligger, med slidserne opad.','Sidder stikkene for stramt eller løst, så justér slidsens bredde med 0,1–0,2 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.'],
+});
+
+// LYS (fyrfadsholder)
+const CANDLE={std:{cd:39.4,ch:12},maxi:{cd:59.6,ch:14}};
+TOOLS.push({id:'lys',name:'Lys',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Type'},
+  {k:'type',l:'Model',type:'select',opts:[['spike','Med stilk (til ler/oasis)'],['eyelet','Med øskner til ståltråd'],['plain','Uden stilk og øskner']],v:'spike'},
+  {k:'count',l:'Antal i filen',min:1,max:12,st:1,v:4},
+  {sec:'Fyrfadslys'},
+  {k:'size',l:'Størrelse',type:'select',opts:[['std','Almindeligt (Ø 38 mm)'],['maxi','Maxi (Ø 58 mm)'],['custom','Egne mål']],v:'std'},
+  {k:'cd',l:'Indvendig diameter',min:20,max:80,st:0.1,v:39.4,csz:true},
+  {k:'ch',l:'Indvendig højde',min:4,max:30,st:0.5,v:12,csz:true},
+  {k:'t',l:'Vægtykkelse',min:1,max:4,st:0.1,v:1.6},
+  {k:'fb',l:'Bundtykkelse',min:1,max:5,st:0.1,v:2},
+  {sec:'Stilk',show:P=>P.type==='spike'},
+  {k:'sl',l:'Længde',min:15,max:120,st:1,v:40,show:P=>P.type==='spike'},
+  {k:'sd',l:'Tykkelse ved bunden',min:3,max:12,st:0.5,v:6,show:P=>P.type==='spike'},
+  {k:'tip',l:'Spidsens tykkelse',min:0.4,max:4,st:0.1,v:1,show:P=>P.type==='spike'},
+  {sec:'Øskner',show:P=>P.type==='eyelet'},
+  {k:'en',l:'Antal øskner',type:'select',opts:[[2,'2 (én i hver side)'],[4,'4 (to i hver side)']],v:2,num:true,show:P=>P.type==='eyelet'},
+  {k:'hd',l:'Hul til ståltråd (Ø)',min:0.8,max:4,st:0.1,v:1.8,show:P=>P.type==='eyelet'},
+  {k:'ew',l:'Øskens bredde',min:4,max:14,st:0.5,v:7,show:P=>P.type==='eyelet'},
+  {k:'ep',l:'Hvor langt den stikker ud',min:3,max:15,st:0.5,v:6,show:P=>P.type==='eyelet'},
+  {k:'et',l:'Øskens tykkelse',min:1.5,max:6,st:0.1,v:3,show:P=>P.type==='eyelet'},
+  {note:'Sikkerhed: brug LED-fyrfadslys. Et brændende fyrfadslys kan blive så varmt, at PLA bliver blødt. Skal der bruges levende lys, så print i PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'},
+ ],
+ onChange(T,k,v){
+   if(k==='size'&&CANDLE[v])for(const [kk,vv] of Object.entries(CANDLE[v]))T.setCtl(kk,vv);
+   if(T.ctrls[k]&&T.ctrls[k].d.csz&&T.P.size!=='custom')T.setCtl('size','custom');},
+ make(P){return buildCandle(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);const o=[],r=Math.max(5,P.cd/2-0.5),h=P.size==='maxi'?22:16;prism(o,circ(0,0,r,64),P.fb,P.fb+h);S.mesh(o,0xf3e7c9,null,true);},
+ files(m,P){return [{name:`fyrfadsholder_${P.type==='spike'?'stilk':P.type==='eyelet'?'oesken':'enkel'}_${P.count}-stk`,tris:candlePrint(m,P)}];},
+ stats(m,P){return [['Udvendig diameter',f1(2*m.Ro)+' mm'],['Højde',f1(m.Ht)+(P.type==='spike'?' + stilk '+f1(P.sl):'')+' mm'],['Antal i filen',P.count]];},
+ tips:P=>[P.type==='spike'?'Printes på hovedet med kanten på pladen og stilken opad (som i filen). Bunden bygges som en bro – det klarer de fleste printere uden support.':'Printes stående som den er – ingen support.',
+   ...(P.type==='eyelet'?['Træk ståltråden gennem øskerne og snor den om grenen eller kransen.']:[]),
+   'Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt – brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'],
 });
 
 // ---------- Kontroller ----------

@@ -292,3 +292,43 @@ function buildInsert(P){
   box(o,x0,x1,prev,y1,z0,H);
   return {tris:o,warn,count:cols*rows,cols,rows,depth};
 }
+
+// ================= FYRFADSHOLDER =================
+// keglestub om z-aksen: radius r0 i z0 (øverst) til r1 i z1 (nederst)
+function frustum(o,r0,z0,r1,z1,s=48){
+  const A=circ(0,0,r0,s),B=circ(0,0,Math.max(0.05,r1),s);
+  for(let k=0;k<s;k++){const j=(k+1)%s,p=A[k],q=A[j],a=B[k],b=B[j];
+    Q(o,[a[0],a[1],z1],[b[0],b[1],z1],[q[0],q[1],z0],[p[0],p[1],z0]);
+    T(o,[0,0,z0],[p[0],p[1],z0],[q[0],q[1],z0]);
+    T(o,[0,0,z1],[b[0],b[1],z1],[a[0],a[1],z1]);}
+}
+const rot2=(pts,a)=>pts.map(([x,y])=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)]);
+function buildCandle(P){
+  const o=[],warn=[],Ri=P.cd/2,Ro=Ri+P.t,fb=P.fb,Ht=fb+P.ch,s=96;
+  prism(o,circ(0,0,Ro,s),0,fb);
+  tube(o,circ(0,0,Ro,s),circ(0,0,Ri,s),0,Ht);
+  let reach=Ro,depthBelow=0;
+  if(P.type==='spike'){
+    const rs=P.sd/2,f=Math.max(0.5,Math.min(4,Ro-rs-1));
+    frustum(o,rs+f,0.5,rs,-f);
+    frustum(o,rs,-f+0.3,P.tip/2,-P.sl);
+    depthBelow=P.sl;
+    if(P.sl<2*f+5)warn.push('Stilken er meget kort.');
+  }
+  if(P.type==='eyelet'){
+    const ew=P.ew,hr=P.hd/2+0.15,ext=Math.max(P.ep,ew/2+hr+1.2),hx=Ro+ext-ew/2,x0=Ro-Math.min(1.5,P.t-0.1);
+    const tab=[[x0,-ew/2],[hx,-ew/2]];for(let k=1;k<16;k++){const a=-Math.PI/2+Math.PI*k/16;tab.push([hx+ew/2*Math.cos(a),ew/2*Math.sin(a)]);}tab.push([hx,ew/2],[x0,ew/2]);
+    const hole=circ(hx,0,hr,24);
+    const sp=P.en===4?(ew+3)/(2*Ro):0,angs=P.en===4?[-sp,sp,Math.PI-sp,Math.PI+sp]:[0,Math.PI];
+    for(const a of angs)plate(o,rot2(tab,a),[rot2(hole,a)],0,Math.min(P.et,Ht));
+    reach=Ro+ext;
+  }
+  return {tris:o,warn,Ht,Ro,reach,depthBelow};
+}
+// flere stk. i printretning (med stilk: på hovedet)
+function candlePrint(m,P){
+  const one=P.type==='spike'?flipZ(m.tris,m.Ht):m.tris,n=Math.max(1,P.count|0),cols=Math.ceil(Math.sqrt(n)),pitch=2*m.reach+5,out=[];
+  for(let i=0;i<n;i++){const cx=(i%cols-(cols-1)/2)*pitch,cy=(Math.floor(i/cols)-(Math.ceil(n/cols)-1)/2)*pitch;
+    for(let k=0;k<one.length;k+=3)out.push(one[k]+cx,one[k+1]+cy,one[k+2]);}
+  return out;
+}

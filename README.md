@@ -12,6 +12,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Skuffer** | Skuffereol med 1–6 skuffer. Greb (fingerhul, kant eller håndtag), stop, etiketter og rumopdeling. Kan hænge på IKEA SKÅDIS. |
 | **Holder** | Vægholder eller stående blok med huller i forskellige størrelser og former, fx til tandbørster, knive eller værktøj. Tilspidsede huller, drypbakke og montering med skruer, tape eller SKÅDIS. |
 | **Kabel** | Kabelclips til bordkanten eller væggen. Montering med 1–2 skruer, tape eller SKÅDIS. |
+| **Lys** | Fyrfadsholder med stilk til ler/oasis eller med øskner til ståltråd. Almindelige eller maxi-fyrfadslys, flere stk. i samme fil. |
 | **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. |
 
 Alle mål er i mm.
@@ -21,13 +22,14 @@ Alle mål er i mm.
 - Hver model ligger i den retning, den skal printes. Der skal ikke bruges support, medmindre det står ved en indstilling (fx SKÅDIS-krog i midten på kabelclips).
 - **Æske:** printes åben ved 180° med bund og låg fladt på pladen. Print testhængslet først for at finde den rigtige frigang til din printer.
 - **SKÅDIS:** krogene sidder fast på modellen. Holder og skuffeskab printes derfor på hovedet med toppen på printpladen. Pladen regnes som 5 mm tyk, og det kan justeres.
+- **Lys:** udgaven med stilk printes på hovedet, og bunden bygges som en bro. Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt, så brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.
 - Er noget for stramt eller løst, så justér frigangen. Printerprofilerne giver et godt udgangspunkt.
 
 ## Gem og del
 
 - **Gem:** gemmer opsætninger i din egen browser.
 - **Delekode:** kopiér en kode, som en anden kan indlæse. Den åbner automatisk den rigtige fane.
-- **Direkte link til en fane:** fx `#skuffer`, `#holder`, `#kabel`, `#indsats`.
+- **Direkte link til en fane:** fx `#skuffer`, `#holder`, `#kabel`, `#indsats`, `#lys`.
 
 ## Kode
 
