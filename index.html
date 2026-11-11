@@ -977,15 +977,29 @@ function buildStrip(P){
   const base=[[x0,0],[Pb[0],0],[Pb[0],w],[x0,w]],bmid=(Math.max(xa+1,x0+4)+bx)/2;
   if(P.mount==='screw'){layered(o,base,screwFeats(bmid,w/2,P.sd,P.shd,tw,'s'),-tw,0,false,MAP_Y);if(w<P.shd+3)warn.push('Standeren er smal i forhold til skruehovedet – gør den bredere.');}
   if(P.mount==='magnet'){if(tw<magNeed(P)-1e-6)warn.push(`Godstykkelsen er for tynd til magneterne – øg til mindst ${f1n(magNeed(P))} mm.`);
-    else layered(o,base,magFeats([[bmid,w/2]],P),-tw,0,true,MAP_Y);}
+    else{const sp=Math.min((bx-Math.max(xa+1,x0+4))/2-P.magD/2-1,12);layered(o,base,magFeats(sp>P.magD/2+1?[[bmid-sp,w/2],[bmid+sp,w/2]]:[[bmid,w/2]],P),-tw,0,true,MAP_Y);}}
+  // bordkant: plade ned foran bordkanten og kæbe ind under bordet (bunden er overkæben)
+  if(P.mount==='desk'){const T=P.T,th=P.th,jaw=P.jaw,sq=P.sq;
+    extrude(o,[[x0-th,-T-th],[x0+0.1,-T-th],[x0+0.1,0.1],[x0-th,0.1]],[],0,w,MAP_Z);
+    extrude(o,[[x0-th,-T-th],[x0+jaw,-T-th],[x0+jaw,-T+sq],[x0+jaw-1.5,-T+sq+0.6],[x0,-T],[x0-th,-T]],[],0,w,MAP_Z);}
+  // SKÅDIS: bunden mod pladen, forkanten opad; krog i profilen ved forkanten
+  let wall=false;
+  if(P.mount==='skadis'){wall=true;const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-tw+0.3,topV=-x0;
+    // forlæng bunden nedad (bagud), så der er plads til den nederste krog/tap
+    let xEnd=Pb[0];if((P.skLow||'hook')!=='none'){const need=x0+SK.pitch+SK.bh+SK.Ld+2.5;if(need>xEnd){extrude(o,[[Pb[0]-1,0],[need,0],[need,tw],[Pb[0]-1,tw]],[],0,w,MAP_Z);xEnd=need;}}
+    const put=pr=>{const tmp=[];extrude(tmp,pr,[],-(zh+SK.tw),-zh,MAP_Z);o.push(...mapPts(tmp,(u,v,ww)=>[-v,-u,-ww]));};
+    put(skHookProfile(A,topV,P.Tb));const low=skLowerProfile(A,topV,P.Tb,-xEnd+0.5,P.skLow||'hook');if(low)put(low);}
   const view=[],L=P.sl,ws=w>=P.sl*0.6;
-  const place=xo=>view.push(...mapPts(o,(X,Y,Z)=>[xo+Z-w/2,X,Y]));
+  const vmap=wall?(xo=>(X,Y,Z)=>[xo-(Z-w/2),-Y,-X]):(xo=>(X,Y,Z)=>[xo+Z-w/2,X,Y]);
+  const place=xo=>view.push(...mapPts(o,vmap(xo)));
   if(ws)place(0);else for(const xo of [-(L/2-w/2-10),L/2-w/2-10])place(xo);
   const gb=[];box(gb,-L/2,L/2,-P.sw/2,P.sw/2,0,P.sh);
-  const ghost=mapPts(gb,(x,v,t)=>{const p=W2(v,tb+t);return [x,p[0],p[1]];});
+  let ghost=mapPts(gb,(x,v,t)=>{const p=W2(v,tb+t);return [x,p[0],p[1]];});
+  if(wall)ghost=mapPts(ghost,(x,X,Y)=>[x,-Y,-X]);
+  if(P.mount==='desk')box(ghost,-L/2-40,L/2+40,x0+0.3,x0+120,-P.T,0);
   if(P.ang>70||P.ang<15)warn.push('Vinklen er meget stejl/flad – tjek at dåsen kan stå stabilt.');
   let mxy=0;for(let i=1;i<o.length;i+=3)mxy=Math.max(mxy,o[i]);
-  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,Pb[0]-x0,mxy]};
+  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,Pb[0]-x0+(P.mount==='desk'?P.th:0),mxy+(P.mount==='desk'?P.T+P.th:0)],wall,skTop:-x0};
 }
 
 /*GEOM-END*/
@@ -1390,37 +1404,37 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {k:'ang',l:'Vinkel (°)',min:15,max:80,st:1,v:45,show:P=>P.form==='stand'},
   {k:'tw',l:'Godstykkelse i foden',min:2,max:6,st:0.1,v:3,show:P=>P.form==='stand'},
   {sec:'Montering'},
-  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw',optShow:(P,v)=>P.form!=='stand'||['screw','magnet','none'].includes(v)},
-  {note:'Standeren står på bordet, så den kan fastgøres med skruer eller magneter – eller bare stå.',show:P=>P.form==='stand'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw'},
+  {note:'Med SKÅDIS hænger standeren på væggen med bunden mod pladen, så dåsen vender skråt ud og op.',show:P=>P.form==='stand'&&P.mount==='skadis'},
+  {note:'Bunden ligger på bordet, og en plade går ned langs kanten med en kæbe ind under bordet.',show:P=>P.form==='stand'&&P.mount==='desk'},
   {k:'sd',l:'Skruediameter',min:2.5,max:6,st:0.5,v:4,show:P=>P.mount==='screw'},
   {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mount==='screw'},
   {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
   {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
   {k:'deskPos',l:'Placering',type:'select',opts:[['front','Foran bordkanten'],['under','Under bordet']],v:'front',show:P=>P.mount==='desk'&&P.form!=='stand'},
-  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
-  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form!=='stand'},
-  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
-  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'},
+  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'},
+  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'},
+  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'},
   {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'&&P.deskPos!=='under'},
   {note:'Dåsen hænger under bordet og klikkes op i bøjlen nedefra. Klemmen griber om kanten, og en lille knast inderst giver klemkraft. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'&&P.deskPos==='under'},
-  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'&&P.form!=='stand'},
-  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form==='clip'},
-  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'&&P.form!=='stand'},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'},
+  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form!=='channel'},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'},
   {note:'Med SKÅDIS hænger den samlede holder lodret og printes stående. Den nederste bøjle får 45°-ribber, så den kan printes uden support.',show:P=>P.mount==='skadis'&&P.form==='channel'},
  ],
  after(T){const f=T.P.form,m=T.P.mount;
-   if(f==='stand'&&(m==='skadis'||m==='desk'))T.setCtl('mount','none');
 
    if(T.P.mount==='magnet'){const need=T.P.magH+1;if(T.P.tb<need)T.setCtl('tb',need);if(f==='stand'&&T.P.tw<need)T.setCtl('tw',need);}},
- make(P){const Q=Object.assign({},P);if(Q.form==='stand'&&(Q.mount==='skadis'||Q.mount==='desk'))Q.mount='none';return buildStrip(Q);},
+ make(P){return buildStrip(P);},
  setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xf2efe9,null,true);
-   if(P.mount==='skadis'&&P.form!=='stand'){const o=[];box(o,-P.sl/2-40,P.sl/2+40,0,P.Tb,-60,(P.form==='channel'?m.dims[0]:0)+60);S.mesh(o,0xe8e2d6,null,true);}},
+   if(P.mount==='skadis'){const o=[];box(o,-P.sl/2-40,P.sl/2+40,0,P.Tb,-90,(P.form==='channel'?m.dims[0]:0)+60);S.mesh(o,0xe8e2d6,null,true);}},
  files(m,P){const nm={clip:'stikdaase-holder',channel:'stikdaase-holder_samlet',stand:'stikdaase-stander'}[P.form];
    return [{name:`${nm}_${Math.round(P.sw)}x${Math.round(P.sh)}${P.mount==='skadis'?'_skadis':''}`,tris:m.print}];},
  stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],...(P.form!=='channel'?[['Antal i filen',P.form==='stand'&&P.cw>=P.sl*0.6?1:P.count]]:[])];},
  tips:P=>[...(P.form==='clip'?['Bøjlerne printes liggende på siden (som i filen) – så er de stærkest og kan fjedre uden at knække.',P.mount==='skadis'&&P.hookPos==='center'?'Krogen i midten skal have support under sig (kun fra printpladen).':'Ingen support nødvendig.']
    :P.form==='channel'?[P.mount==='skadis'||P.mount==='desk'?'Printes stående med den øverste ende nedad (som i filen). Ribberne under den nederste bøjle gør, at der ikke skal bruges support.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.']
-   :['Printes liggende på siden (som i filen) – ingen support.','Standeren får automatisk en fod fremad, så den ikke vælter ved stejle vinkler.']),
+   :['Printes liggende på siden (som i filen) – ingen support'+(P.mount==='skadis'&&P.hookPos==='center'?', bortset fra under krogen i midten.':'.'),...(P.mount==='skadis'||P.mount==='desk'?[]:['Standeren får automatisk en fod fremad, så den ikke vælter ved stejle vinkler.'])]),
    'Dåsen klikkes ned mellem kanterne. Er den for stram, så mindsk kantens greb.',...(P.mount==='magnet'?['Magnethullerne er åbne mod monteringsfladen – lim magneterne i.']:[])],
 });
 

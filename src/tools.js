@@ -499,13 +499,27 @@ function buildStrip(P){
   const base=[[x0,0],[Pb[0],0],[Pb[0],w],[x0,w]],bmid=(Math.max(xa+1,x0+4)+bx)/2;
   if(P.mount==='screw'){layered(o,base,screwFeats(bmid,w/2,P.sd,P.shd,tw,'s'),-tw,0,false,MAP_Y);if(w<P.shd+3)warn.push('Standeren er smal i forhold til skruehovedet – gør den bredere.');}
   if(P.mount==='magnet'){if(tw<magNeed(P)-1e-6)warn.push(`Godstykkelsen er for tynd til magneterne – øg til mindst ${f1n(magNeed(P))} mm.`);
-    else layered(o,base,magFeats([[bmid,w/2]],P),-tw,0,true,MAP_Y);}
+    else{const sp=Math.min((bx-Math.max(xa+1,x0+4))/2-P.magD/2-1,12);layered(o,base,magFeats(sp>P.magD/2+1?[[bmid-sp,w/2],[bmid+sp,w/2]]:[[bmid,w/2]],P),-tw,0,true,MAP_Y);}}
+  // bordkant: plade ned foran bordkanten og kæbe ind under bordet (bunden er overkæben)
+  if(P.mount==='desk'){const T=P.T,th=P.th,jaw=P.jaw,sq=P.sq;
+    extrude(o,[[x0-th,-T-th],[x0+0.1,-T-th],[x0+0.1,0.1],[x0-th,0.1]],[],0,w,MAP_Z);
+    extrude(o,[[x0-th,-T-th],[x0+jaw,-T-th],[x0+jaw,-T+sq],[x0+jaw-1.5,-T+sq+0.6],[x0,-T],[x0-th,-T]],[],0,w,MAP_Z);}
+  // SKÅDIS: bunden mod pladen, forkanten opad; krog i profilen ved forkanten
+  let wall=false;
+  if(P.mount==='skadis'){wall=true;const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-tw+0.3,topV=-x0;
+    // forlæng bunden nedad (bagud), så der er plads til den nederste krog/tap
+    let xEnd=Pb[0];if((P.skLow||'hook')!=='none'){const need=x0+SK.pitch+SK.bh+SK.Ld+2.5;if(need>xEnd){extrude(o,[[Pb[0]-1,0],[need,0],[need,tw],[Pb[0]-1,tw]],[],0,w,MAP_Z);xEnd=need;}}
+    const put=pr=>{const tmp=[];extrude(tmp,pr,[],-(zh+SK.tw),-zh,MAP_Z);o.push(...mapPts(tmp,(u,v,ww)=>[-v,-u,-ww]));};
+    put(skHookProfile(A,topV,P.Tb));const low=skLowerProfile(A,topV,P.Tb,-xEnd+0.5,P.skLow||'hook');if(low)put(low);}
   const view=[],L=P.sl,ws=w>=P.sl*0.6;
-  const place=xo=>view.push(...mapPts(o,(X,Y,Z)=>[xo+Z-w/2,X,Y]));
+  const vmap=wall?(xo=>(X,Y,Z)=>[xo-(Z-w/2),-Y,-X]):(xo=>(X,Y,Z)=>[xo+Z-w/2,X,Y]);
+  const place=xo=>view.push(...mapPts(o,vmap(xo)));
   if(ws)place(0);else for(const xo of [-(L/2-w/2-10),L/2-w/2-10])place(xo);
   const gb=[];box(gb,-L/2,L/2,-P.sw/2,P.sw/2,0,P.sh);
-  const ghost=mapPts(gb,(x,v,t)=>{const p=W2(v,tb+t);return [x,p[0],p[1]];});
+  let ghost=mapPts(gb,(x,v,t)=>{const p=W2(v,tb+t);return [x,p[0],p[1]];});
+  if(wall)ghost=mapPts(ghost,(x,X,Y)=>[x,-Y,-X]);
+  if(P.mount==='desk')box(ghost,-L/2-40,L/2+40,x0+0.3,x0+120,-P.T,0);
   if(P.ang>70||P.ang<15)warn.push('Vinklen er meget stejl/flad – tjek at dåsen kan stå stabilt.');
   let mxy=0;for(let i=1;i<o.length;i+=3)mxy=Math.max(mxy,o[i]);
-  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,Pb[0]-x0,mxy]};
+  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,Pb[0]-x0+(P.mount==='desk'?P.th:0),mxy+(P.mount==='desk'?P.T+P.th:0)],wall,skTop:-x0};
 }
