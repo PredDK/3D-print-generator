@@ -11,7 +11,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Æske** | Æske med låg og hængsel, der printes samlet i ét stykke (print-in-place). Indvendig kant, klik-lås, greb, tekst på låg og/eller forside, magneter til stabling og frit placerbare skillevægge. |
 | **Skuffer** | Skuffereol med 1–6 skuffer. Greb (fingerhul, kant eller håndtag), stop, etiketter og rumopdeling. Kan hænge på IKEA SKÅDIS. |
 | **Holder** | Vægholder eller stående blok med huller i forskellige størrelser og former, fx til tandbørster, knive eller værktøj. Tilspidsede huller, drypbakke og montering med skruer, tape eller SKÅDIS. |
-| **Kabel** | Kabelclips til bordkanten eller væggen. Montering med 1–2 skruer, tape eller SKÅDIS. |
+| **Kabel** | Kabelclips til bordkanten eller væggen, og kabelbøjle til et helt bundt (kammer med klik-spalte forneden). Montering med 1–2 skruer, magneter, tape, SKÅDIS eller bordkant-klemme. |
 | **Stikdåse** | Holdere til stikdåser: enkelte bøjler, en samlet holder (2 bøjler forbundet med en bjælke) eller en skrå stander med clips. Mål efter din egen dåse. Montering med SKÅDIS-kroge, skruehuller, magneter, bordkant-klemme eller ingenting. |
 | **Lys** | Fyrfadsholder med stilk til ler/oasis eller med øskner til ståltråd. Almindelige eller maxi-fyrfadslys, flere stk. i samme fil. |
 | **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. |

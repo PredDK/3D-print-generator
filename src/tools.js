@@ -229,7 +229,68 @@ function buildHolder(P){
 }
 
 // ================= KABELCLIPS =================
+// tyk "streg" langs en midterlinje (glat polyline) → lukket polygon
+function strokePoly(path,t){const L=[],R=[],n=path.length;
+  for(let i=0;i<n;i++){const a=path[Math.max(0,i-1)],b=path[Math.min(n-1,i+1)];let dx=b[0]-a[0],dy=b[1]-a[1];const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;
+    L.push([path[i][0]-dy*t/2,path[i][1]+dx*t/2]);R.push([path[i][0]+dy*t/2,path[i][1]-dx*t/2]);}
+  return L.concat(R.reverse());}
+function arcPts(p,cx,cy,r,a0,a1,n){for(let k=1;k<=n;k++){const a=a0+(a1-a0)*k/n;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}}
+// kabelbøjle: kammer med fjedrende spalte forneden. Profil i (f,y): f = fremad fra bagpladens inderside, y op.
+// Bygges i (u,y) med u = -f-bt (u>0 ind mod væg/bord), ekstruderes langs z (= bredden) → printes med profilen fladt
+function buildCableLoop(P){
+  const o=[],warn=[],t=P.lt,bt=Math.max(P.lbt,t),D=P.lD,H=P.lH,g=P.lg,w=P.w,Ll=P.lL;
+  const yT=H+t/2,Rc=Math.max(t/2+1,Math.min(Math.min(D,H)/3,(D+t)/2-0.01));
+  let r1=Math.max(t/2+0.8,Math.min(4,(D-g)/2-0.3)),r2=r1;
+  if(D-g<r1+r2+0.2)warn.push('Kammeret er for smalt i forhold til spalten – gør det bredere eller spalten mindre.');
+  const yF=-t/2,yA=yF+r1,yl=yF-r2-Ll,th=0.6109,rf=4;
+  const U=pts=>pts.map(([f,y])=>[-f-bt,y]);
+  // top: fra bagpladen, over toppen og ned til forvæggens lige stykke
+  const p1=[[-t/2,yT-Rc-0.3],[-t/2,yT-Rc]];arcPts(p1,-t/2+Rc,yT-Rc,Rc,Math.PI,Math.PI/2,12);
+  p1.push([D+t/2-Rc,yT]);arcPts(p1,D+t/2-Rc,yT-Rc,Rc,Math.PI/2,0,12);p1.push([D+t/2,yT-Rc-0.3]);
+  extrude(o,U(strokePoly(p1,t)),[],0,w,MAP_Z);
+  // S-bøjning: bund ind mod bagpladen, læbe ned langs den og en udadbøjet indføring
+  const p2=[[D+t/2,yA+0.3],[D+t/2,yA]];arcPts(p2,D+t/2-r1,yA,r1,0,-Math.PI/2,10);
+  const xr=g+t/2+r2;if(D+t/2-r1>xr+0.05)p2.push([xr,yF]);arcPts(p2,xr,yF-r2,r2,Math.PI/2,Math.PI,10);
+  p2.push([g+t/2,yl]);arcPts(p2,g+t/2+rf,yl,rf,Math.PI,Math.PI+th,8);
+  extrude(o,U(strokePoly(p2,t)),[],0,w,MAP_Z);
+  const yB=yl-rf*Math.sin(th)-0.5;
+  // forvæg (lige stykke) med adgangshul til skruetrækker
+  const mt=P.mount,scr=mt==='screw',mg=mt==='magnet',dk=mt==='desk',sk=mt==='skadis';
+  const yW0=yA,yW1=yT-Rc,yh=(yW0+yW1)/2,hs=yW1-yW0,n=(scr||mg)?(P.nscrew===2?2:1):0;
+  const zs=n===2?[w/4,3*w/4]:n?[w/2]:[];
+  if(n===2&&w/2<(mg?P.magD+2:P.shd+3))warn.push('Clipsen er smal til 2 huller – gør den bredere.');
+  const fw=[[yW0,0],[yW1,0],[yW1,w],[yW0,w]];
+  let acc=[];if(scr){let ar=Math.min(P.shd/2+1.2,hs/2-0.8,w/(2*n)-1);if(ar<P.shd/2+0.3)warn.push('Kammeret er lavt til adgangshullet – skruehovedet kan ikke komme igennem. Gør kammeret højere.');
+    if(ar>1)acc=zs.map(z=>circ(yh,z,ar,32));}
+  extrude(o,fw,acc,-D-t-bt,-D-bt,MAP_X);
+  // bagplade
+  const top=yW1;let vb=yB;
+  if(sk&&(P.skLow||'none')!=='none')vb=Math.min(vb,top-SK.pitch-SK.bh-SK.Ld-1.5);
+  if(sk)vb=Math.min(vb,top-SK.bh-SK.Ld-3);
+  const bp=[[vb,0],[top,0],[top,w],[vb,w]];
+  let ghost=null,Ydesk=null;
+  if(scr)layered(o,bp,zs.flatMap((z,i)=>screwFeats(yh,z,P.sd,P.shd,bt,'s'+i)),-bt,0,false,MAP_X);
+  else if(mg){if(bt<magNeed(P)-1e-6){warn.push(`Bagpladen er for tynd til magneterne – øg den til mindst ${f1n(magNeed(P))} mm.`);extrude(o,bp,[],-bt,0,MAP_X);}
+    else layered(o,bp,magFeats(zs.map(z=>[yh,z]),P),-bt,0,true,MAP_X);}
+  else if(dk){const T=P.T,tj=P.th,J=P.jaw,sq=P.sq;Ydesk=yT+t/2;const y0=Ydesk-T;
+    const cl=[[-bt,y0-tj],[J,y0-tj],[J,y0+sq],[J-1.5,y0+sq+0.6],[0,y0],[0,Ydesk],[J-1.5,Ydesk],[J,Ydesk+0.6],[J,Ydesk+tj],[-bt,Ydesk+tj]];
+    if(y0-tj>vb)extrude(o,[[-bt,vb],[0,vb],[0,y0-tj+0.1],[-bt,y0-tj+0.1]],[],0,w,MAP_Z);
+    extrude(o,cl,[],0,w,MAP_Z);
+    ghost={x0:-w*2,x1:w*2,y0:0.3,y1:150,z0:y0,z1:Ydesk};}
+  else extrude(o,bp,[],-bt,0,MAP_X);
+  let skInfo=null,needsSupport=false;
+  if(sk){const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-bt+0.3;
+    extrude(o,skHookProfile(A,top,P.Tb),[],zh,zh+SK.tw,MAP_Z);
+    const low=skLowerProfile(A,top,P.Tb,vb+0.5,P.skLow||'none');if(low)extrude(o,low,[],zh,zh+SK.tw,MAP_Z);
+    needsSupport=zh>0;skInfo={Tb:P.Tb,hx:zh+SK.tw/2-w/2};}
+  let mny=Infinity,mxy=-Infinity,mnu=Infinity,mxu=-Infinity;for(let i=0;i<o.length;i+=3){mny=Math.min(mny,o[i+1]);mxy=Math.max(mxy,o[i+1]);mnu=Math.min(mnu,o[i]);mxu=Math.max(mxu,o[i]);}
+  const view=new Array(o.length);for(let i=0;i<o.length;i+=3){view[i]=o[i+2]-w/2;view[i+1]=o[i];view[i+2]=o[i+1]-mny;}
+  if(ghost){ghost.z0-=mny;ghost.z1-=mny;}
+  if(skInfo){skInfo.vOff=-mny;skInfo.top=top-mny;}
+  return {tris:o,view,warn,ghost,skadis:skInfo,needsSupport,dims:[w,mxu-mnu,mxy-mny],loop:{yh:yh-mny,zs,acc:acc.length>0}};
+}
 function buildCable(P){
+  if(P.ctype==='loop')return buildCableLoop(P);
   const warn=[],o=[],N=Math.max(1,P.cn|0),dc=P.cd,wc=P.cw,ri=dc/2+0.25,ro=ri+wc,ow=Math.max(1,dc*P.co),w=P.w;
   const pitch=2*ro-wc;
   if(P.ctype==='desk'){
