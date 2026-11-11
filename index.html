@@ -636,8 +636,8 @@ function holderLayout(P){
 function holePoly(c,cz,g=0){const h=c.h;if(h.s!=='s')return circ(c.cx,cz,h.a/2+g,48);
   const ex=c.ex+2*g,ez=c.ez+2*g;return rr(ex,ez,Math.min(ex,ez)/2-0.01,8).map(([x,y])=>[x+c.cx,y+cz]);}
 // tilspidsede huller: trin fra største (ved fladen) til nominel størrelse i bunden af tykkelsen 'th'
-function taperFeats(cs,cz,th,deg,extra){const n=deg>0.05?Math.max(4,Math.min(12,Math.ceil(th/0.8))):1,tn=Math.tan(deg*Math.PI/180),f=[];
-  cs.forEach((c,i)=>{for(let k=0;k<n;k++)f.push({d:th*(k+1)/n,hole:holePoly(c,cz,th*(n-1-k)/n*tn),g:i});if(extra)extra(c,i,f);});return f;}
+function taperFeats(cs,cz,th,deg,extra,maxG=Infinity){const n=deg>0.05?Math.max(4,Math.min(12,Math.ceil(th/0.8))):1,tn=Math.tan(deg*Math.PI/180),f=[];
+  cs.forEach((c,i)=>{for(let k=0;k<n;k++)f.push({d:th*(k+1)/n,hole:holePoly(c,cz,Math.min(maxG,th*(n-1-k)/n*tn)),g:i});if(extra)extra(c,i,f);});return f;}
 // rektangel (x fra -w/2..w/2, y fra 0..h) med valgfri radius pr. hjørne [nederst-venstre, nederst-højre, øverst-højre, øverst-venstre]
 function rectR(w,h,rs,seg=8){const cs=[[-w/2,0,180],[w/2,0,270],[w/2,h,0],[-w/2,h,90]],p=[];
   cs.forEach(([x,y,a0],i)=>{const r=Math.max(0,Math.min(rs[i],w/2-0.01,h/2-0.01));if(r<0.05){p.push([x,y]);return;}
@@ -651,8 +651,9 @@ function buildHolder(P){
     const D=L.dmax+2*m,H=P.bh,hd=Math.max(1,H-P.bfb);
     const out=rr(W,D,Math.min(R,D/2-1),8);
     const tn=Math.tan(taper*Math.PI/180);
-    if(taper>0&&hd*tn>Math.min(P.hgap,m)*0.9)warn.push('Tilspidsningen er så stor, at hullerne næsten løber sammen i toppen – mindsk vinklen eller øg afstanden.');
-    const feats=taperFeats(L.cs,0,hd,taper,(c,i,f)=>{if(P.drain)f.push({d:H,hole:circ(c.cx,0,1.6,24),g:i});});
+    const gMax=Math.max(0,Math.min(P.hgap/2,m)-0.6);
+    if(taper>0&&hd*tn>gMax)warn.push('Tilspidsningen er begrænset, så hullerne ikke løber sammen eller ud over kanten – mindsk vinklen eller øg afstanden/kanten.');
+    const feats=taperFeats(L.cs,0,hd,taper,(c,i,f)=>{if(P.drain)f.push({d:H,hole:circ(c.cx,0,1.6,24),g:i});},gMax);
     if(P.bmag&&L.cs.length){
       if(P.drain)warn.push('Magneter og drænhuller kan ikke kombineres – slå det ene fra.');
       else if(P.bfb<magNeed(P)-1e-6)warn.push(`Bunden er for tynd til magneterne – øg bundtykkelsen til mindst ${f1n(magNeed(P))} mm.`);
@@ -677,7 +678,7 @@ function buildHolder(P){
   layered(o,back,sf,0,tb,!bmag);
   const shelf=rrFront(W,Dsh,R);
   // hylde med tilspidsede huller (bredest i oversiden)
-  layered(o,shelf,taperFeats(L.cs,tb+gap+L.dmax/2,ts,taper),-Hb,-(Hb-ts),false,MAP_Y);
+  layered(o,shelf,taperFeats(L.cs,tb+gap+L.dmax/2,ts,taper,null,Math.max(0,Math.min(P.hgap/2,m,gap)-0.6)),-Hb,-(Hb-ts),false,MAP_Y);
   // hvor langt hylden når ud ved en given x (pga. afrundede forhjørner)
   const reach=x=>{const ax=Math.abs(x);if(R<0.05||ax<=W/2-R)return Dsh;const dx=ax-(W/2-R);return Dsh-R+Math.sqrt(Math.max(0,R*R-dx*dx));};
   const tt=P.trayT||2,sw=Math.max(1.6,ts);
@@ -734,11 +735,15 @@ function buildCableLoop(P){
   const yB=yl-rf*Math.sin(th)-0.5;
   // forvæg (lige stykke) med adgangshul til skruetrækker
   const mt=P.mount,scr=mt==='screw',mg=mt==='magnet',dk=mt==='desk',sk=mt==='skadis';
-  const yW0=yA,yW1=yT-Rc,yh=(yW0+yW1)/2,hs=yW1-yW0,n=(scr||mg)?(P.nscrew===2?2:1):0;
+  const yW0=yA,yW1=yT-Rc,yh=(yW0+yW1)/2,hs=yW1-yW0,need=mg?P.magD+2.4:P.shd+2;
+  let n=(scr||mg)?(P.nscrew===2?2:1):0;
+  if(n===2&&w/2<need){n=1;warn.push('Clipsen er for smal til 2 huller – der er lavet ét i midten. Gør den bredere for at få 2.');}
+  if(n===1&&w<need){n=0;warn.push(mg?'Clipsen er smallere end magneten – gør den bredere.':'Clipsen er smallere end skruehovedet – gør den bredere.');}
+  const hr=mg?P.magD/2+0.15:Math.max(P.sd/2+0.45,P.shd/2+0.2);
+  if(n&&hr+0.8>yW1-yh){n=0;warn.push(mg?'Kammeret er for lavt til magneterne – gør det højere eller brug mindre magneter.':'Kammeret er for lavt til skruehullet – gør det højere.');}
   const zs=n===2?[w/4,3*w/4]:n?[w/2]:[];
-  if(n===2&&w/2<(mg?P.magD+2:P.shd+3))warn.push('Clipsen er smal til 2 huller – gør den bredere.');
   const fw=[[yW0,0],[yW1,0],[yW1,w],[yW0,w]];
-  let acc=[];if(scr){let ar=Math.min(P.shd/2+1.2,hs/2-0.8,w/(2*n)-1);if(ar<P.shd/2+0.3)warn.push('Kammeret er lavt til adgangshullet – skruehovedet kan ikke komme igennem. Gør kammeret højere.');
+  let acc=[];if(scr&&n){let ar=Math.min(P.shd/2+1.2,hs/2-0.8,w/(2*n)-1);if(ar<P.shd/2+0.3)warn.push('Kammeret er lavt til adgangshullet – skruehovedet kan ikke komme igennem. Gør kammeret højere.');
     if(ar>1)acc=zs.map(z=>circ(yh,z,ar,32));}
   extrude(o,fw,acc,-D-t-bt,-D-bt,MAP_X);
   // bagplade
@@ -810,7 +815,8 @@ function buildCable(P){
   const Rb=Math.min(3,w/2-0.5);
   const base=rr(w,y1-y0,Rb,6).map(([x,y])=>[x,y+(y0+y1)/2]);
   let feats=[];
-  if(mg){if(bt<magNeed(P)-1e-6)warn.push(`Bundpladen er for tynd til magneterne – øg den til mindst ${f1n(magNeed(P))} mm.`);
+  if(scr&&w<(mg?P.magD+1.3:P.shd+1.6)){warn.push(mg?'Clipsen er smallere end magneten – gør den bredere.':'Clipsen er smallere end skruehovedet – gør den bredere.');}
+  else if(mg){if(bt<magNeed(P)-1e-6)warn.push(`Bundpladen er for tynd til magneterne – øg den til mindst ${f1n(magNeed(P))} mm.`);
     else feats=magFeats([[0,-ro-tab/2],...(two?[[0,yN+ro+tab/2]]:[])],P);}
   else if(scr){feats=screwFeats(0,-ro-tab/2,P.sd,P.shd,bt,'s');if(two)feats.push(...screwFeats(0,yN+ro+tab/2,P.sd,P.shd,bt,'s2'));}
   if(mg&&w<P.magD+2)warn.push('Clipsen er smal i forhold til magneterne – gør den bredere.');
@@ -877,7 +883,7 @@ function buildBitInsert(P){
   let W=P.W,D=P.D;
   if(P.auto){W=Math.max(needW,15);D=Math.max(needD,10);}
   if(!P.auto&&W<needW-1e-6)warn.push('Mindst ét hul er bredere end indsatsen – gør den bredere.');
-  const R=Math.max(0,Math.min(P.R,W/2-1,D/2-1));
+  const R=Math.max(0,Math.min(P.R,W/2-1,D/2-1,3.4*(e-0.6)));
   const H=P.H,dep=Math.min(dep0,H-P.fb);
   if(dep<dep0-0.01)warn.push(`Indsatsen er lavere end huldybden – hullerne er kun ${f1n(dep)} mm dybe. Gør den højere.`);
   // placér rækkerne oppefra og ned; drop dem der ikke kan være der
@@ -893,7 +899,7 @@ function buildBitInsert(P){
       x+=c.w+gx;placed++;}
     y-=r.h+g;}
   if(placed<total)warn.push(`Der er kun plads til ${placed} af ${total} huller – gør indsatsen større eller slå “Tilpas størrelsen” til.`);
-  const out=rr(W,D,R,8);
+  const out=R<0.05?[[-W/2,-D/2],[W/2,-D/2],[W/2,D/2],[-W/2,D/2]]:rr(W,D,R,8);
   // magneter i bunden (lommer fra undersiden)
   const fl=H-dep;
   if(P.mag){if(fl<magNeed(P)-1e-6)warn.push(`Bunden under hullerne er for tynd til magneter – gør indsatsen højere (mindst ${f1n(magNeed(P)+dep)} mm).`);
@@ -1296,8 +1302,11 @@ TOOLS.push({id:'skuffer',name:'Skuffer',dl:'Download STL-filer (ZIP)',hasPlan:tr
   {sec:'Rum i skufferne'},
   {note:'Opdelingen gælder alle skuffer.'},...roomDefs().map(d=>d.k==='dx'?{...d,v:0}:d)],
  interior(P){const C=drawerCalc(P);return {iw:C.iw,id:C.id,ir:C.ir};},
+ after(T){const P=T.P,sk=P.mount==='skadis',min=sk?8:6;
+   for(let H=P.H,k=0;k<200;k++){const C=drawerCalc({...P,H,skadis:sk});if(C.sh>=min){if(H>P.H)T.setCtl('H',Math.ceil(H));break;}H+=1;}},
  make(P){
    P.skadis=P.mount==='skadis';
+   {const min=P.skadis?8:6;let k=0;while(drawerCalc(P).sh<min&&k++<300)P.H+=1;}
    const C=drawerCalc(P);const lab=P.labels.split(',').map(s=>s.trim());
    // øverste skuffe først i teksten; skuffe k=0 er nederst
    P.tbs=[];for(let k=0;k<C.n;k++){const s=lab[C.n-1-k]||'';P.tbs.push(s?textBitmap(s,P.textSize,C.dw-6,C.dh-C.nd-4):null);}
@@ -1418,8 +1427,9 @@ TOOLS.push({id:'kabel',name:'Kabel',dl:'Download STL',
   {k:'sd',l:'Skruediameter',min:2.5,max:5,st:0.5,v:3.5,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='screw'},
   {k:'shd',l:'Skruehovedets diameter',min:5,max:10,st:0.5,v:7,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='screw'},
  ],
- after(T){const P=T.P,need=P.magH+1;if(P.ctype==='wall'&&P.mount==='magnet'&&P.bt<need)T.setCtl('bt',need);
-  if(P.ctype==='loop'&&P.mount==='magnet'&&P.lbt<need)T.setCtl('lbt',need);if(P.ctype!=='loop'&&P.mount==='desk')T.setCtl('mount','screw');},
+ after(T,k){const P=T.P,need=P.magH+1;if(P.ctype==='wall'&&P.mount==='magnet'&&P.bt<need)T.setCtl('bt',need);
+  if(P.ctype==='loop'&&P.mount==='magnet'&&P.lbt<need)T.setCtl('lbt',need);if(P.ctype!=='loop'&&P.mount==='desk')T.setCtl('mount','screw');
+  if(k==='ctype'&&P.ctype==='loop'&&P.w<25)T.setCtl('w',30);},
  make(P){return buildCable(P);},
  setup(m,S,P){S.mesh(m.view,0x2b7a78);if(m.skadis){const o=[];box(o,-40,40,0,m.skadis.Tb,-40,m.skadis.top+30);S.mesh(o,0xe8e2d6,null,true);}if(m.ghost){const g=m.ghost,o=[];box(o,g.x0,g.x1,g.y0,g.y1,g.z0,g.z1);S.mesh(o,0xc9bfae,null,true);}},
  files(m,P){if(P.ctype==='loop')return [{name:`kabelboejle_${P.mount}_${P.lD}x${P.lH}mm`,tris:m.tris}];return [{name:`kabelclips_${P.ctype==='desk'?'bordkant':P.mount==='skadis'?'skadis':'vaeg'}_${P.cn}x${String(P.cd).replace('.',',')}mm`,tris:m.tris}];},

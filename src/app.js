@@ -170,8 +170,11 @@ TOOLS.push({id:'skuffer',name:'Skuffer',dl:'Download STL-filer (ZIP)',hasPlan:tr
   {sec:'Rum i skufferne'},
   {note:'Opdelingen gælder alle skuffer.'},...roomDefs().map(d=>d.k==='dx'?{...d,v:0}:d)],
  interior(P){const C=drawerCalc(P);return {iw:C.iw,id:C.id,ir:C.ir};},
+ after(T){const P=T.P,sk=P.mount==='skadis',min=sk?8:6;
+   for(let H=P.H,k=0;k<200;k++){const C=drawerCalc({...P,H,skadis:sk});if(C.sh>=min){if(H>P.H)T.setCtl('H',Math.ceil(H));break;}H+=1;}},
  make(P){
    P.skadis=P.mount==='skadis';
+   {const min=P.skadis?8:6;let k=0;while(drawerCalc(P).sh<min&&k++<300)P.H+=1;}
    const C=drawerCalc(P);const lab=P.labels.split(',').map(s=>s.trim());
    // øverste skuffe først i teksten; skuffe k=0 er nederst
    P.tbs=[];for(let k=0;k<C.n;k++){const s=lab[C.n-1-k]||'';P.tbs.push(s?textBitmap(s,P.textSize,C.dw-6,C.dh-C.nd-4):null);}
@@ -292,8 +295,9 @@ TOOLS.push({id:'kabel',name:'Kabel',dl:'Download STL',
   {k:'sd',l:'Skruediameter',min:2.5,max:5,st:0.5,v:3.5,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='screw'},
   {k:'shd',l:'Skruehovedets diameter',min:5,max:10,st:0.5,v:7,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='screw'},
  ],
- after(T){const P=T.P,need=P.magH+1;if(P.ctype==='wall'&&P.mount==='magnet'&&P.bt<need)T.setCtl('bt',need);
-  if(P.ctype==='loop'&&P.mount==='magnet'&&P.lbt<need)T.setCtl('lbt',need);if(P.ctype!=='loop'&&P.mount==='desk')T.setCtl('mount','screw');},
+ after(T,k){const P=T.P,need=P.magH+1;if(P.ctype==='wall'&&P.mount==='magnet'&&P.bt<need)T.setCtl('bt',need);
+  if(P.ctype==='loop'&&P.mount==='magnet'&&P.lbt<need)T.setCtl('lbt',need);if(P.ctype!=='loop'&&P.mount==='desk')T.setCtl('mount','screw');
+  if(k==='ctype'&&P.ctype==='loop'&&P.w<25)T.setCtl('w',30);},
  make(P){return buildCable(P);},
  setup(m,S,P){S.mesh(m.view,0x2b7a78);if(m.skadis){const o=[];box(o,-40,40,0,m.skadis.Tb,-40,m.skadis.top+30);S.mesh(o,0xe8e2d6,null,true);}if(m.ghost){const g=m.ghost,o=[];box(o,g.x0,g.x1,g.y0,g.y1,g.z0,g.z1);S.mesh(o,0xc9bfae,null,true);}},
  files(m,P){if(P.ctype==='loop')return [{name:`kabelboejle_${P.mount}_${P.lD}x${P.lH}mm`,tris:m.tris}];return [{name:`kabelclips_${P.ctype==='desk'?'bordkant':P.mount==='skadis'?'skadis':'vaeg'}_${P.cn}x${String(P.cd).replace('.',',')}mm`,tris:m.tris}];},
