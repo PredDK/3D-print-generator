@@ -358,6 +358,54 @@ TOOLS.push({id:'lys',name:'Lys',dl:'Download STL',
    'Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt – brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'],
 });
 
+// STIKDÅSE
+TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Form'},
+  {k:'form',l:'Model',type:'select',opts:[['clip','Enkelte holdere (bøjler)'],['channel','Samlet holder (hele længden)'],['stand','Stander til bordet (skrå)']],v:'clip'},
+  {k:'count',l:'Antal i filen',min:1,max:8,st:1,v:2,show:P=>P.form!=='channel'},
+  {sec:'Stikdåsen (mål den)'},
+  {k:'sw',l:'Bredde (på tværs)',min:20,max:120,st:0.5,v:55},
+  {k:'sh',l:'Højde (tykkelse)',min:15,max:80,st:0.5,v:40},
+  {k:'sl',l:'Længde',min:80,max:600,st:1,v:300},
+  {note:'Der lægges automatisk 0,5 mm frigang til.'},
+  {sec:'Holder'},
+  {k:'cw',l:P=>P.form==='stand'?'Standerens bredde (langs dåsen)':'Bøjlens bredde',min:10,max:600,st:1,v:22,show:P=>P.form!=='channel'},
+  {note:'Sæt bredden til dåsens længde for at få én samlet stander.',show:P=>P.form==='stand'},
+  {k:'tb',l:'Bundtykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.form!=='stand'},
+  {k:'ta',l:'Sidernes tykkelse',min:1.6,max:6,st:0.1,v:3,show:P=>P.form!=='stand'},
+  {k:'lip',l:'Kantens greb over dåsen',min:1.5,max:10,st:0.5,v:4,show:P=>P.form!=='stand'},
+  {k:'tl',l:'Kantens tykkelse',min:1.6,max:6,st:0.1,v:3,show:P=>P.form!=='channel'},
+  {k:'ends',l:'Ender',type:'select',opts:[['stop','Lukkede, hul til ledningen i den ene'],['open','Åbne']],v:'stop',show:P=>P.form==='channel'},
+  {k:'cn',l:'Hul til ledningen (bredde)',min:6,max:30,st:0.5,v:12,show:P=>P.form==='channel'&&P.ends==='stop'},
+  {k:'te',l:'Endernes tykkelse',min:1.6,max:5,st:0.1,v:2.5,show:P=>P.form==='channel'&&P.ends==='stop'},
+  {k:'ang',l:'Vinkel (°)',min:15,max:80,st:1,v:45,show:P=>P.form==='stand'},
+  {k:'lipS',l:'Kant forneden (højde)',min:4,max:30,st:0.5,v:8,show:P=>P.form==='stand'},
+  {k:'tw',l:'Godstykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.form==='stand'},
+  {sec:'Montering'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['none','Ingenting']],v:'screw'},
+  {note:'Standeren står på bordet – vælg skruehuller eller ingenting.',show:P=>P.form==='stand'&&P.mount==='skadis'},
+  {k:'sd',l:'Skruediameter',min:2.5,max:6,st:0.5,v:4,show:P=>P.mount==='screw'},
+  {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mount==='screw'},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'&&P.form!=='stand'},
+  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form==='clip'},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'&&P.form!=='stand'},
+  {note:'Med SKÅDIS hænger den samlede holder lodret og printes stående – så kan krogene printes uden support.',show:P=>P.mount==='skadis'&&P.form==='channel'},
+ ],
+ onChange(T,k,v){if(k==='form'&&v==='stand'&&T.P.mount==='skadis')T.setCtl('mount','none');
+   if(k==='mount'&&v==='skadis'&&T.P.form==='stand')T.setCtl('form','clip');},
+ make(P){return buildStrip(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xf2efe9,null,true);
+   if(P.mount==='skadis'&&P.form!=='stand'){const o=[];box(o,-P.sl/2-40,P.sl/2+40,0,P.Tb,-60,(P.form==='channel'?m.dims[0]:0)+60);S.mesh(o,0xe8e2d6,null,true);}},
+ files(m,P){const nm={clip:'stikdaase-holder',channel:'stikdaase-holder_samlet',stand:'stikdaase-stander'}[P.form];
+   return [{name:`${nm}_${Math.round(P.sw)}x${Math.round(P.sh)}${P.mount==='skadis'?'_skadis':''}`,tris:m.print}];},
+ stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],...(P.form!=='channel'?[['Antal i filen',P.form==='stand'&&P.cw>=P.sl*0.6?1:P.count]]:[])];},
+ tips:P=>P.form==='clip'?['Bøjlerne printes liggende på siden (som i filen) – så er de stærkest og kan fjedre uden at knække.',P.mount==='skadis'&&P.hookPos==='center'?'Krogen i midten skal have support under sig (kun fra printpladen).':'Ingen support nødvendig.','Dåsen klikkes ned mellem kanterne. Er den for stram, så mindsk kantens greb.']
+   :P.form==='channel'?[P.mount==='skadis'?'Printes stående med den øverste ende nedad (som i filen). Den nederste ende bygges som en bro.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.','Ledningen føres ud gennem hullet i den ene ende.']
+   :['Printes liggende på siden (som i filen) – ingen support.','Standeren har en fod fremad, så den ikke vælter, selv ved stejle vinkler.'],
+});
+
 // ---------- Kontroller ----------
 const ctl=document.getElementById('controls');
 for(const T of TOOLS){

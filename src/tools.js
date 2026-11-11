@@ -332,3 +332,94 @@ function candlePrint(m,P){
     for(let k=0;k<one.length;k+=3)out.push(one[k]+cx,one[k+1]+cy,one[k+2]);}
   return out;
 }
+
+// ================= STIKDÅSE =================
+// P.form: 'clip' (enkelte holdere), 'channel' (samlet holder), 'stand' (skrå stander til bordet)
+function mapPts(tr,f){const o=new Array(tr.length);for(let i=0;i<tr.length;i+=3){const p=f(tr[i],tr[i+1],tr[i+2]);o[i]=p[0];o[i+1]=p[1];o[i+2]=p[2];}return o;}
+function layout(one,n,pitchX){const out=[],cols=Math.ceil(Math.sqrt(n));let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+  for(let i=0;i<one.length;i+=3){mnx=Math.min(mnx,one[i]);mxx=Math.max(mxx,one[i]);mny=Math.min(mny,one[i+1]);mxy=Math.max(mxy,one[i+1]);}
+  const px=mxx-mnx+5,py=mxy-mny+5;
+  for(let k=0;k<n;k++){const dx=(k%cols)*px-(mnx+mxx)/2,dy=Math.floor(k/cols)*py-(mny+mxy)/2;for(let i=0;i<one.length;i+=3)out.push(one[i]+dx,one[i+1]+dy,one[i+2]);}
+  return out;}
+function buildStrip(P){
+  const warn=[],c=0.5,Sw=P.sw+c,Sh=P.sh+c,tb=P.tb,ta=P.ta,lip=P.lip,tl=P.tl;
+  const ys=Sw/2,yo=Sw/2+ta;
+  if(P.form==='clip'){
+    // profil i print-XY: X = ud fra væggen (bund X∈[0,tb]), Y = på tværs af dåsen; ekstruderet i Z = bøjlens bredde
+    const o=[],cw=P.cw,top=tb+Sh,ch=Math.min(1.5,tl*0.6,lip*0.6);
+    // bund med evt. forsænket skruehul (hovedet inde i bøjlen)
+    const feats=P.mount==='screw'?screwFeats(0,cw/2,P.sd,P.shd,tb,'s'):[];
+    if(P.mount==='screw'&&cw<P.shd+3)warn.push('Bøjlen er smal i forhold til skruehovedet – gør den bredere.');
+    layered(o,[[-yo,0],[yo,0],[yo,cw],[-yo,cw]],feats,0,tb,true,MAP_X);
+    // arme med kanter (afrundet indløb foroven)
+    for(const s of [1,-1]){const arm=[[tb-0.2,ys],[top,ys],[top,ys-lip],[top+tl-ch,ys-lip],[top+tl,ys-lip+ch],[top+tl,yo],[tb-0.2,yo]].map(([x,y])=>[x,s*y]);
+      extrude(o,arm,[],0,cw,MAP_Z);}
+    let hooks=false;
+    if(P.mount==='skadis'){
+      const zh=P.hookPos==='center'?cw/2-SK.tw/2:0,A=-tb+0.3;
+      const put=pr=>{const tmp=[];extrude(tmp,pr,[],-(zh+SK.tw),-zh,MAP_Z);o.push(...mapPts(tmp,(u,v,w)=>[-u,v,-w]));};
+      put(skHookProfile(A,yo,P.Tb));const low=skLowerProfile(A,yo,P.Tb,-yo+0.5,P.skLow||'hook');if(low)put(low);hooks=true;
+      if(!low&&P.skLow!=='none')warn.push('Holderen er for lav til den nederste SKÅDIS-krog – dåsen skal være mindst ca. 50 mm bred.');}
+    // visning: væggen bag (−y), dåsen vandret
+    const view=[],L=P.sl;
+    for(const xo of [-(L/2-cw-10),L/2-cw-10])view.push(...mapPts(o,(X,Y,Z)=>[xo+cw/2-Z,-X,Y]));
+    const ghost=[];box(ghost,-L/2,L/2,-(tb+Sh-0.3),-tb,-P.sw/2,P.sw/2);
+    return {view,ghost,print:layout(o,Math.max(1,P.count|0)),warn,dims:[cw,tb+Sh+tl,2*yo],needsSupport:P.mount==='skadis'&&P.hookPos==='center',board:P.mount==='skadis'?{y:0,axis:'y'}:null};
+  }
+  if(P.form==='channel'){
+    // bygget med bunden nedad: x = langs dåsen, y = på tværs, z = op fra bunden
+    const o=[],L=P.sl+2*c+(P.ends==='stop'?2*P.te:0),x0=-L/2,x1=L/2,top=tb+Sh;
+    const holes=[];
+    if(P.mount==='screw'){const n=Math.max(2,Math.round(L/120)+1);for(let i=0;i<n;i++){const x=x0+20+(L-40)*i/(n-1);holes.push(...screwFeats(x,0,P.sd,P.shd,tb,'s'+i));}}
+    layered(o,[[x0,-yo],[x1,-yo],[x1,yo],[x0,yo]],holes,0,tb,true);
+    for(const s of [1,-1]){const arm=[[ys,tb-0.2],[ys,top],[ys-lip,top+lip],[ys-lip,top+lip+1.2],[yo,top+lip+1.2],[yo,tb-0.2]].map(([y,z])=>[s*y,z]);
+      extrude(o,arm,[],x0,x1,MAP_X);}
+    if(P.ends==='stop'){const zt=top+lip+1.2,cn=Math.min(P.cn,Sw-4);
+      for(const [a,b,notch] of [[x0,x0+P.te,true],[x1-P.te,x1,false]]){
+        const pr=notch?[[-yo,0],[yo,0],[yo,zt],[cn/2,zt],[cn/2,tb+Math.min(8,Sh/3)],[-cn/2,tb+Math.min(8,Sh/3)],[-cn/2,zt],[-yo,zt]]:[[-yo,0],[yo,0],[yo,zt],[-yo,zt]];
+        extrude(o,pr,[],a,b,MAP_X);}}
+    let print=o,view=o,hooks=false;
+    if(P.mount==='skadis'){
+      // hænger lodret: kroge for enden (x = x1 er øverst), printes stående med den ende nedad
+      const A=-tb+0.3,mp=(u,v,w)=>[v,-w,-u];
+      const put=pr=>{const tmp=[];extrude(tmp,pr,[],-SK.tw/2,SK.tw/2,MAP_Z);o.push(...mapPts(tmp,mp));};
+      put(skHookProfile(A,x1,P.Tb));const low=skLowerProfile(A,x1,P.Tb,x0+0.5,P.skLow||'hook');if(low)put(low);hooks=true;
+      print=mapPts(o,(x,y,z)=>[z,y,x1-x]);
+      view=mapPts(o,(x,y,z)=>[y,-z,x-x0]);
+    }
+    const ghost=[];
+    if(P.mount==='skadis')box(ghost,-P.sw/2,P.sw/2,-(tb+P.sh),-tb,(L-P.sl)/2,(L+P.sl)/2);
+    else box(ghost,-P.sl/2,P.sl/2,-P.sw/2,P.sw/2,tb,tb+P.sh);
+    return {view,ghost,print,warn,dims:[L,2*yo,top+lip+1.2],standing:P.mount==='skadis'};
+  }
+  // stander: profil i print-XY (x bagud, y op), ekstruderet i z = bredde (langs dåsen)
+  const o=[],a=P.ang*Math.PI/180,d=[Math.cos(a),Math.sin(a)],n=[-Math.sin(a),Math.cos(a)],tw=P.tw,w=P.cw;
+  const tlp=tl,lipH=Math.max(4,P.lipS),h0=tw,S0=[tlp*Math.cos(a)+0.5,h0],Ls=Sw+2,S1=[S0[0]+d[0]*Ls,S0[1]+d[1]*Ls];
+  const L0=[S0[0]-d[0]*tlp,S0[1]-d[1]*tlp];
+  const prof=[[L0[0],0],[S1[0],0],S1,S0,[S0[0]+n[0]*lipH,S0[1]+n[1]*lipH],[L0[0]+n[0]*lipH,L0[1]+n[1]*lipH],L0];
+  // fjern punkter med samme x på bunden og sørg for at forkanten går lodret ned
+  const outer=prof.filter((p,i)=>i===0||Math.hypot(p[0]-prof[i-1][0],p[1]-prof[i-1][1])>1e-6);
+  // hult inderst: trekant forskudt tw ind fra bund, bagkant og sæde
+  const off=tw,bx=S1[0]-off;
+  const yAt=x=>S0[1]+(x-S0[0])*Math.tan(a)-off/Math.cos(a);
+  const xa=(off-S0[1]+off/Math.cos(a))/Math.tan(a)+S0[0];
+  const holes=[];
+  if(bx-xa>6&&yAt(bx)-off>6)holes.push([[xa+1,off],[bx,off],[bx,yAt(bx)]]);
+  // bundens skruehuller laves som separat plade (X,Z) gennem y∈[0,tw]
+  const base=[[L0[0],0],[S1[0],0],[S1[0],w],[L0[0],w]];
+  if(P.mount==='screw'){const bmid=(Math.max(xa+1,4)+bx)/2;
+    layered(o,base,screwFeats(bmid,w/2,P.sd,P.shd,tw,'s'),-tw,0,false,MAP_Y);
+    if(w<P.shd+3)warn.push('Standeren er smal i forhold til skruehovedet – gør den bredere.');}
+  extrude(o,outer,holes,0,w,MAP_Z);
+  // fod fremad, så dåsens tyngdepunkt altid ligger over foden (ellers vælter den ved stejle vinkler)
+  const cx=S0[0]+d[0]*(Sw/2)+n[0]*(P.sh/2),xf=Math.min(L0[0],cx-12);
+  if(xf<L0[0]-0.5)extrude(o,[[xf,0],[L0[0]+1,0],[L0[0]+1,tw],[xf+tw*0.5,tw]],[],0,w,MAP_Z);
+  const view=[],L=P.sl,ws=w>=P.sl*0.6;
+  const place=(xo)=>view.push(...mapPts(o,(X,Y,Z)=>[xo+Z-w/2,X,Y]));
+  if(ws)place(0);else for(const xo of [-(L/2-w/2-10),L/2-w/2-10])place(xo);
+  // dåsen på sædet (til visning)
+  const ghost=[];const gb=[];box(gb,-L/2,L/2,0,Sw-c,0,P.sh);
+  ghost.push(...mapPts(gb,(x,y,z)=>{const px=S0[0]+d[0]*(y+0.5)+n[0]*z,py=S0[1]+d[1]*(y+0.5)+n[1]*z;return [x,px,py];}));
+  if(P.ang>70||P.ang<15)warn.push('Vinklen er meget stejl/flad – tjek at dåsen kan ligge stabilt.');
+  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,S1[0]-Math.min(xf,L0[0]),Math.max(S1[1],S0[1]+n[1]*lipH)]};
+}
