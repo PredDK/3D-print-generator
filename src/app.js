@@ -243,7 +243,7 @@ TOOLS.push({id:'holder',name:'Holder',dl:'Download STL',
  setup(m,S,P){S.mesh(m.view,0x2b7a78);if(m.trayView)S.mesh(m.trayView,0xd9622b);if(m.skadis){const W=m.dims[0],o=[];box(o,-W/2-40,W/2+40,0,P.Tb,-40,m.dims[2]+20);S.mesh(o,0xe8e2d6,null,true);}},
  files(m,P){const n=m.count,base=`holder_${P.mode==='wall'?'vaeg':'staaende'}_${n}-huller`;
    return [{name:base+(m.skadis?'_skadis':''),tris:m.print},...(m.trayPart?[{name:'drypbakke',tris:m.trayPart}]:[])];},
- stats(m,P){return [['Mål (B × D × H)',m.dims.map(f1).join(' × ')],['Huller',m.count],...(m.skadis?[['Montering','SKÅDIS, faste kroge']]:[]),...(m.trayPart?[['Drypbakke','løs, printes for sig']]:[])];},
+ stats(m,P){if(P.itype!=='slots'&&P.itype)return [['Mål',[m.W,m.D,m.H].map(f1).join(' × ')],['Huller',m.count<m.total?`${m.count} af ${m.total}`:String(m.count)],['Huldybde',`${f1(m.dep)} mm`]];return [['Mål (B × D × H)',m.dims.map(f1).join(' × ')],['Huller',m.count],...(m.skadis?[['Montering','SKÅDIS, faste kroge']]:[]),...(m.trayPart?[['Drypbakke','løs, printes for sig']]:[])];},
  tips:P=>P.mode==='wall'?[...(P.mount==='skadis'?[]:['Printes liggende på bagpladen – hylder og bakke står lodret, så der skal ingen support til.']),
    ...(P.mount==='skadis'?['Med SKÅDIS printes holderen på hovedet (toppen på pladen), som den ligger i filen – så kan krogene printes uden support.','Hæng den op: vip krogene ind i slidserne og lad holderen glide ned, så tappen går i slidsen nedenunder.',...(P.tray?['Drypbakken printes for sig og skubbes ind forfra.']:[])]:
    P.mount==='screw'?['Skruehullerne er forsænkede til undersænkhoveder.']:P.mount==='magnet'?['Magnethullerne er åbne mod væggen – lim magneterne i (fx med superlim).']:['Brug kraftig dobbeltklæbende monteringstape.']),
@@ -311,19 +311,36 @@ const SLOTS={usba:{l:'USB-A (dongle/USB-stik)',sw:12.6,stk:4.9,sd:12,gx:5,gy:10}
 TOOLS.push({id:'indsats',name:'Indsats',dl:'Download STL',
  init:{},
  defs:[
-  {sec:'Slidser'},
-  {k:'kind',l:'Til',type:'select',opts:Object.entries(SLOTS).map(([k,v])=>[k,v.l]).concat([['custom','Egne mål']]),v:'usba'},
-  {k:'sw',l:'Slidsens længde',min:2,max:60,st:0.1,v:12.6,slot:true},
-  {k:'stk',l:'Slidsens bredde',min:0.8,max:20,st:0.1,v:4.9,slot:true},
-  {k:'sd',l:'Slidsens dybde',min:2,max:40,st:0.5,v:12,slot:true},
-  {k:'gx',l:'Afstand mellem slidser',min:1.5,max:30,st:0.5,v:5,slot:true},
-  {k:'gy',l:'Afstand mellem rækker',min:1.5,max:40,st:0.5,v:10,slot:true},
-  {note:'Afstanden mellem rækkerne skal give plads til selve donglen eller stikkets greb.'},
+  {sec:'Type'},
+  {k:'itype',l:'Indsats til',type:'select',opts:[['slots','USB, SD-kort m.m. (slidser)'],['bits','Bits (sekskant 1/4")'],['drill','Bor (runde huller)']],v:'slots'},
+  {sec:'Slidser',show:P=>P.itype==='slots'},
+  {k:'kind',l:'Til',type:'select',opts:Object.entries(SLOTS).map(([k,v])=>[k,v.l]).concat([['custom','Egne mål']]),v:'usba',show:P=>P.itype==='slots'},
+  {k:'sw',l:'Slidsens længde',min:2,max:60,st:0.1,v:12.6,slot:true,show:P=>P.itype==='slots'},
+  {k:'stk',l:'Slidsens bredde',min:0.8,max:20,st:0.1,v:4.9,slot:true,show:P=>P.itype==='slots'},
+  {k:'sd',l:'Slidsens dybde',min:2,max:40,st:0.5,v:12,slot:true,show:P=>P.itype==='slots'},
+  {k:'gx',l:'Afstand mellem slidser',min:1.5,max:30,st:0.5,v:5,slot:true,show:P=>P.itype==='slots'},
+  {k:'gy',l:'Afstand mellem rækker',min:1.5,max:40,st:0.5,v:10,slot:true,show:P=>P.itype==='slots'},
+  {note:'Afstanden mellem rækkerne skal give plads til selve donglen eller stikkets greb.',show:P=>P.itype==='slots'},
+  {sec:'Bits',show:P=>P.itype==='bits'},
+  {k:'bn',l:'Antal bits',min:1,max:80,st:1,v:12,show:P=>P.itype==='bits'},
+  {k:'baf',l:'Sekskantens nøglevidde',min:3,max:14,st:0.05,v:6.35,show:P=>P.itype==='bits'},
+  {note:'Almindelige bits er 1/4" = 6,35 mm målt mellem to flade sider.',show:P=>P.itype==='bits'},
+  {k:'bdep',l:'Huldybde',min:3,max:50,st:0.5,v:10,show:P=>P.itype==='bits'},
+  {sec:'Bor',show:P=>P.itype==='drill'},
+  {k:'dlist',l:'Størrelser (mm)',type:'text',max:200,ph:'fx 2 3 4 5 6 8 10',v:'1 1,5 2 2,5 3 3,5 4 4,5 5 5,5 6 6,5 7 8 9 10',show:P=>P.itype==='drill'},
+  {note:'Skriv borenes diameter adskilt af mellemrum. Komma eller punktum som decimaltegn.',show:P=>P.itype==='drill'},
+  {k:'ddep',l:'Huldybde',min:3,max:50,st:0.5,v:15,show:P=>P.itype==='drill'},
+  {k:'lbl',l:'Størrelsen skrevet under hvert hul',type:'check',v:true,show:P=>P.itype==='drill'},
+  {k:'lsz',l:'Tekststørrelse',min:2,max:8,st:0.5,v:3.5,show:P=>P.itype==='drill'&&P.lbl},
+  {sec:'Huller',show:P=>P.itype!=='slots'},
+  {k:'cl',l:'Ekstra plads i hullerne',min:0,max:1.5,st:0.05,v:0.35,show:P=>P.itype!=='slots'},
+  {k:'hg',l:'Afstand mellem hullerne',min:1.5,max:20,st:0.5,v:3,show:P=>P.itype!=='slots'},
+  {k:'auto',l:'Tilpas størrelsen til hullerne',type:'check',v:true,show:P=>P.itype!=='slots'},
   {sec:'Mål'},
   {k:'fit',l:'Tilpas til',type:'select',opts:[['','Vælg …'],['skuffe','Skuffe fra Skuffer-fanen'],['aeske','Æske fra Æske-fanen']],v:'',noGeom:true},
   {note:'Fylder hele skuffen/æsken. Har den skillevægge, så skriv målene på ét rum i stedet.'},
-  {k:'W',l:'Bredde',min:15,max:300,st:0.5,v:100},
-  {k:'D',l:'Dybde',min:10,max:300,st:0.5,v:80},
+  {k:'W',l:P=>P.itype!=='slots'&&P.auto?'Største bredde':'Bredde',min:15,max:300,st:0.5,v:100},
+  {k:'D',l:'Dybde',min:10,max:300,st:0.5,v:80,show:P=>P.itype==='slots'||!P.auto},
   {k:'H',l:'Højde',min:3,max:60,st:0.5,v:14},
   {k:'edge',l:'Kant',min:2,max:15,st:0.5,v:3},
   {k:'R',l:'Hjørneradius',min:0,max:15,st:0.5,v:3},
@@ -338,14 +355,19 @@ TOOLS.push({id:'indsats',name:'Indsats',dl:'Download STL',
    if(k==='fit'){let w,d,h;
      if(v==='skuffe'){const P=TOOLS.find(t=>t.id==='skuffer').P,C=drawerCalc(P);w=C.iw-0.8;d=C.id-0.8;h=C.dh-P.dfb-1;}
      if(v==='aeske'){const P=TOOLS.find(t=>t.id==='aeske').P,E=eff(Object.assign({},P,{tb:null}));w=E.W-2*E.t-0.8;d=E.D-2*E.t-0.8;h=E.Hb-E.fbB-(E.lip?E.lipH+E.fit:0)-0.5;}
-     if(w){const r=x=>Math.floor(x*2)/2;T.setCtl('W',r(w));T.setCtl('D',r(d));T.setCtl('H',Math.max(3,Math.min(60,r(Math.min(h,Math.max(T.P.sd+T.P.fb,T.P.H))))));}
+     if(w){const r=x=>Math.floor(x*2)/2,dp=T.P.itype==='bits'?T.P.bdep:T.P.itype==='drill'?T.P.ddep:T.P.sd;if(T.P.itype!=='slots')T.setCtl('auto',false);
+       T.setCtl('W',r(w));T.setCtl('D',r(d));T.setCtl('H',Math.max(3,Math.min(60,r(Math.min(h,Math.max(dp+T.P.fb,T.P.H))))));}
      T.setCtl('fit','');}},
- after(T){const P=T.P,need=P.magH+1;if(P.mag&&P.H-Math.min(P.sd,P.H-P.fb)<need)T.setCtl('H',Math.min(60,Math.ceil((P.sd+need)*2)/2));},
- make(P){return buildInsert(P);},
+ after(T,k){const P=T.P,need=P.magH+1,dp=P.itype==='bits'?P.bdep:P.itype==='drill'?P.ddep:P.sd;
+   if(P.mag&&P.H-Math.min(dp,P.H-P.fb)<need)T.setCtl('H',Math.min(60,Math.ceil((dp+need)*2)/2));
+   else if(P.itype!=='slots'&&(k==='itype'||k==='bdep'||k==='ddep')&&P.H<dp+P.fb)T.setCtl('H',Math.min(60,Math.ceil((dp+P.fb+0.5)*2)/2));},
+ make(P){if(P.itype==='slots'||!P.itype)return buildInsert(P);
+   if(P.itype==='drill')P.lbls=P.lbl?parseSizes(P.dlist).map(d=>textBitmap(String(+d.toFixed(2)).replace('.',','),P.lsz,Math.max(d+P.cl,P.lsz*2.6),P.lsz*1.6)):null;
+   const m=buildBitInsert(P);if(P.lbl&&P.lbls&&P.lbls.some(x=>!x))m.warn.push('Teksten er for lille til at blive printet – gør tekststørrelsen større.');return m;},
  setup(m,S){S.mesh(m.tris,0x2b7a78);},
- files(m,P){return [{name:`indsats_${P.kind}_${m.cols}x${m.rows}`,tris:m.tris}];},
+ files(m,P){if(P.itype==='bits')return [{name:`indsats_bits_${m.count}stk`,tris:m.tris}];if(P.itype==='drill')return [{name:`indsats_bor_${m.count}stk`,tris:m.tris}];return [{name:`indsats_${P.kind}_${m.cols}x${m.rows}`,tris:m.tris}];},
  stats(m,P){return [['Mål',[P.W,P.D,P.H].map(f1).join(' × ')],['Slidser',`${m.count} (${m.cols} × ${m.rows})`],['Slids',`${f1(P.sw)} × ${f1(P.stk)} × ${f1(m.depth||P.sd)} mm`]];},
- tips:P=>['Printes som den ligger, med slidserne opad.','Sidder stikkene for stramt eller løst, så justér slidsens bredde med 0,1–0,2 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.'],
+ tips:P=>P.itype==='bits'?['Printes som den ligger, med hullerne opad.','Sidder bitsene for stramt eller løst, så justér “Ekstra plads” med 0,05–0,1 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.']:P.itype==='drill'?['Printes som den ligger, med hullerne opad.','Små huller bliver ofte lidt for små i print – “Ekstra plads” på 0,3–0,5 mm plejer at passe.','Tallene er fordybet i toppen; skift evt. filamentfarve i laget lige under toppen, så de står tydeligt.']:['Printes som den ligger, med slidserne opad.','Sidder stikkene for stramt eller løst, så justér slidsens bredde med 0,1–0,2 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.'],
 });
 
 // LYS (fyrfadsholder)

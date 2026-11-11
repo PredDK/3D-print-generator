@@ -14,7 +14,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Kabel** | Kabelclips til bordkanten eller væggen, og kabelbøjle til et helt bundt (kammer med klik-spalte forneden). Montering med 1–2 skruer, magneter, tape, SKÅDIS eller bordkant-klemme. |
 | **Stikdåse** | Holdere til stikdåser: enkelte bøjler, en samlet holder (2 bøjler forbundet med en bjælke) eller en skrå stander med clips. Mål efter din egen dåse. Montering med SKÅDIS-kroge, skruehuller, magneter, bordkant-klemme eller ingenting. |
 | **Lys** | Fyrfadsholder med stilk til ler/oasis eller med øskner til ståltråd. Almindelige eller maxi-fyrfadslys, flere stk. i samme fil. |
-| **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. |
+| **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. Også bits (1/4" sekskant) og bor med størrelsen skrevet under hvert hul. |
 
 Alle mål er i mm.
 

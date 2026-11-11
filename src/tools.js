@@ -377,6 +377,55 @@ function buildInsert(P){
   return {tris:o,warn,count:cols*rows,cols,rows,depth};
 }
 
+// ================= INDSATS: BITS OG BOR =================
+function parseSizes(str){return String(str||'').split(/[\s;]+/).map(x=>parseFloat(x.replace(',','.'))).filter(x=>x>=0.5&&x<=30).slice(0,80);}
+function hexPoly(cx,cy,af){const r=af/Math.sqrt(3),p=[];for(let k=0;k<6;k++){const a=Math.PI/3*k;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}return p;}
+function buildBitInsert(P){
+  const warn=[],o=[],e=P.edge,g=P.hg,cl=P.cl,bits=P.itype==='bits';
+  const dep0=bits?P.bdep:P.ddep;
+  // celler: [bredde, højde, d (huldiam./nøglevidde), label]
+  let cells=[];
+  if(bits){const af=P.baf+cl,hw=2*af/Math.sqrt(3);for(let i=0;i<Math.max(1,P.bn|0);i++)cells.push({w:hw,h:af,af});}
+  else{const sz=parseSizes(P.dlist);if(!sz.length)warn.push('Skriv mindst én borstørrelse (fx 3 4 5 6).');
+    sz.forEach((d,i)=>{const lb=P.lbl&&P.lbls?P.lbls[i]:null,lw=lb?lb.cols*lb.res:0,lh=lb?lb.rows*lb.res:0;
+      cells.push({w:Math.max(d+cl,lw),h:d+cl+(lb?lh+0.6:0),d:d+cl,lb,lh});});}
+  // pak i rækker inden for bredden
+  let maxW=P.W-2*e;const rows=[];
+  if(bits&&P.auto&&cells.length){const c0=cells[0],nc=Math.max(1,Math.round(Math.sqrt(cells.length*1.4)));maxW=Math.min(maxW,nc*c0.w+(nc-1)*g+1e-6);}let cur=[],cw=0;
+  for(const c of cells){const add=(cur.length?g:0)+c.w;if(cur.length&&cw+add>maxW){rows.push({cells:cur,w:cw});cur=[];cw=0;}cw+=(cur.length?g:0)+c.w;cur.push(c);}
+  if(cur.length)rows.push({cells:cur,w:cw});
+  for(const r of rows)r.h=Math.max(...r.cells.map(c=>c.h));
+  const needD=rows.reduce((a,r)=>a+r.h,0)+g*Math.max(0,rows.length-1)+2*e,needW=Math.max(0,...rows.map(r=>r.w))+2*e;
+  let W=P.W,D=P.D;
+  if(P.auto){W=Math.max(needW,15);D=Math.max(needD,10);}
+  if(!P.auto&&W<needW-1e-6)warn.push('Mindst ét hul er bredere end indsatsen – gør den bredere.');
+  const R=Math.max(0,Math.min(P.R,W/2-1,D/2-1));
+  const H=P.H,dep=Math.min(dep0,H-P.fb);
+  if(dep<dep0-0.01)warn.push(`Indsatsen er lavere end huldybden – hullerne er kun ${f1n(dep)} mm dybe. Gør den højere.`);
+  // placér rækkerne oppefra og ned; drop dem der ikke kan være der
+  const feats=[],fills=[];let y=D/2-e,placed=0,total=cells.length;const td=0.6;
+  for(const r of rows){if(y-r.h<-D/2+e-1e-6)break;
+    // fordel rækken jævnt over bredden
+    const free=(W-2*e)-r.w,gx=g;let x=-W/2+e+free/2;
+    for(const c of r.cells){const cx=x+c.w/2;
+      if(bits)feats.push({d:dep,hole:hexPoly(cx,y-r.h/2,c.af)});
+      else{const cy=y-c.d/2;feats.push({d:dep,hole:circ(cx,cy,c.d/2,Math.max(24,Math.min(64,Math.round(c.d*8))))});
+        if(c.lb){const lw=c.lb.cols*c.lb.res,x0=cx-lw/2,yt=cy-c.d/2-0.6,yb=yt-c.lh;
+          feats.push({d:td,hole:[[x0,yb],[x0+lw,yb],[x0+lw,yt],[x0,yt]]});fills.push({lb:c.lb,x0,yt});}}
+      x+=c.w+gx;placed++;}
+    y-=r.h+g;}
+  if(placed<total)warn.push(`Der er kun plads til ${placed} af ${total} huller – gør indsatsen større eller slå “Tilpas størrelsen” til.`);
+  const out=rr(W,D,R,8);
+  // magneter i bunden (lommer fra undersiden)
+  const fl=H-dep;
+  if(P.mag){if(fl<magNeed(P)-1e-6)warn.push(`Bunden under hullerne er for tynd til magneter – gør indsatsen højere (mindst ${f1n(magNeed(P)+dep)} mm).`);
+    else{const mr=P.magD/2+0.15,ex=W/2-mr-2.5,ey=D/2-mr-2.5;layered(o,out,magFeats([[ex,ey],[-ex,ey],[-ex,-ey],[ex,-ey]],P),0,fl,false);}}
+  if(!(P.mag&&fl>=magNeed(P)-1e-6))prism(o,out,0,fl);
+  layered(o,out,feats,fl,H,true);
+  for(const f of fills)textFill(f.lb,(c0,c1,r0,r1)=>box(o,f.x0+c0*f.lb.res,f.x0+c1*f.lb.res,f.yt-r1*f.lb.res,f.yt-r0*f.lb.res,H-td,H));
+  return {tris:o,warn,count:placed,total,W,D,H,dep};
+}
+
 // ================= FYRFADSHOLDER =================
 // keglestub om z-aksen: radius r0 i z0 (øverst) til r1 i z1 (nederst)
 function frustum(o,r0,z0,r1,z1,s=48){
