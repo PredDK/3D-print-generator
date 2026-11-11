@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D-print generator</title>
+<style>
+:root{--bg:#f4f2ee;--panel:#ffffff;--ink:#1d1d1b;--mute:#6d6a63;--line:#e3dfd7;--acc:#d9622b;--acc2:#2b7a78;color-scheme:light}
+*{box-sizing:border-box}
+button,input,select,textarea{color:var(--ink);background-color:#fff;font:inherit}
+html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+#app{display:flex;height:100vh}
+#panel{width:340px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 28px}
+h1{font-size:18px;margin:0 0 2px;letter-spacing:-.01em}
+.sub{color:var(--mute);font-size:12.5px;margin:0 0 6px}
+.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:18px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
+.row{margin:0 0 10px}
+.row label{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:3px;gap:8px}
+.row input[type=number]{width:64px;padding:3px 5px;border:1px solid var(--line);border-radius:6px;text-align:right}
+.row input[type=text]{width:100%;padding:5px 8px;border:1px solid var(--line);border-radius:6px}
+.row input[type=range]{width:100%;accent-color:var(--acc)}
+.row.chk label{justify-content:flex-start;cursor:pointer}
+.row.chk input{accent-color:var(--acc);width:16px;height:16px}
+.row select{padding:3px 6px;border:1px solid var(--line);border-radius:6px;max-width:190px}
+.note{font-size:12px;color:var(--mute);margin:-4px 0 10px}
+.stats{background:#faf8f4;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:14px}
+.stats div{display:flex;justify-content:space-between;padding:2px 0;gap:10px}
+.stats b{font-weight:600;text-align:right}
+.warn{background:#fff3e8;border:1px solid #f1c7a6;color:#8a3b10;border-radius:10px;padding:8px 12px;font-size:12.5px;margin-top:10px;display:none}
+button{cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#fff;padding:8px 12px}
+button:disabled{opacity:.45;cursor:default}
+#dl{width:100%;margin-top:14px;background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;padding:11px}
+#dl:hover{filter:brightness(1.05)}
+#dlExtra{width:100%;margin-top:6px;font-size:13px}
+#msg{font-size:12.5px;color:var(--mute);margin-top:8px;min-height:1em}
+.tips{font-size:12.5px;color:var(--mute);margin-top:16px;padding-left:18px}
+.tips li{margin-bottom:4px}
+#planbox{margin-top:4px}
+#tabs{display:flex;gap:4px;background:#f1eee8;padding:4px;border-radius:12px;margin:10px 0 2px}
+#tabs{flex-wrap:wrap}
+#tabs button{flex:1 1 auto;border:0;background:transparent;padding:7px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--mute)}
+#tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.planhint{font-size:12px;color:var(--mute);margin-bottom:6px}
+#plan{width:100%;display:block;border:1px solid var(--line);border-radius:10px;background:#faf8f4;touch-action:none;cursor:default}
+#plan:focus{outline:2px solid #2f7fc8;outline-offset:1px}
+.pbtns{display:flex;gap:6px;margin-top:6px}.pbtns button{flex:1;font-size:12.5px;padding:6px}
+#selrow{display:none;justify-content:space-between;align-items:center;font-size:12.5px;margin-top:8px}
+#selrow input{width:70px;padding:2px 5px;border:1px solid var(--line);border-radius:6px;text-align:right}
+.hl{margin-top:4px}
+.hhead,.hrow{display:grid;grid-template-columns:70px 1fr 48px 26px;gap:5px;align-items:center;margin-bottom:5px}
+.hhead{font-size:11px;color:var(--mute)}
+.hrow select{padding:3px 2px;border:1px solid var(--line);border-radius:6px;font-size:12.5px}
+.hrow .sz{display:flex;align-items:center;gap:3px}.hrow .sz i{font-style:normal;color:var(--mute)}
+.hrow input{width:100%;min-width:0;padding:3px 4px;border:1px solid var(--line);border-radius:6px;text-align:right;font-size:12.5px}
+.hrow .del{padding:2px 0;font-size:12px;border-radius:6px}
+.addhole{width:100%;font-size:12.5px;padding:6px;margin-top:2px}
+.saverow{display:flex;gap:6px;margin-bottom:6px}
+.saverow input,.saverow select{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.saverow button{font-size:12.5px;padding:6px 10px;white-space:nowrap}
+#pasteBox textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px;font-size:12px;font-family:ui-monospace,monospace}
+#view{position:relative;flex:1;min-width:0}
+#c{width:100%;height:100%;display:block;touch-action:none}
+#hud{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 4px 18px rgba(0,0,0,.06);white-space:nowrap}
+#hud input{width:200px;accent-color:var(--acc2)}
+#hud .lbl{font-size:13px}
+#hud .val{font-variant-numeric:tabular-nums;width:40px;text-align:right;font-weight:600}
+#legend{position:absolute;top:14px;right:16px;font-size:12px;color:var(--mute);background:rgba(255,255,255,.85);padding:6px 10px;border-radius:8px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px;vertical-align:-1px}
+@media (max-width:760px){#app{flex-direction:column-reverse;height:auto}#panel{width:100%;border-right:0}#view{height:60vh;flex:none}#hud input{width:120px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>3D-print generator</h1>
+    <p class="sub">Parametriske modeller til 3D-print. Alle mål i mm.</p>
+    <div id="tabs"></div>
+    <div id="controls"></div>
+    <div id="planbox">
+      <div class="planhint" id="planhint"></div>
+      <canvas id="plan" tabindex="0"></canvas>
+      <div class="pbtns"><button id="addh">+ Væg</button><button id="delw">Slet valgt</button></div>
+      <div id="selrow"><span id="sellab"></span><input id="selval" type="number" step="0.5"></div>
+      <button id="even" style="width:100%;margin-top:6px;font-size:12.5px;padding:6px">Fordel jævnt</button>
+    </div>
+    <div class="warn" id="warn"></div>
+    <div class="stats" id="stats"></div>
+    <button id="dl">Download STL</button>
+    <button id="dlExtra"></button>
+    <div id="msg"></div>
+
+    <div class="sec">Gem og del</div>
+    <div class="saverow"><input id="saveName" placeholder="Navn, fx “Skruer”"><button id="saveBtn">Gem</button></div>
+    <div class="saverow"><select id="loadSel"></select><button id="delSave">Slet</button></div>
+    <div class="saverow"><button id="copyCode" style="flex:1">Kopiér delekode</button><button id="showPaste" style="flex:1">Indlæs delekode</button></div>
+    <div id="pasteBox" style="display:none"><textarea id="codeTa" rows="3" placeholder="Indsæt delekode her"></textarea><button id="loadCode" style="width:100%;margin-top:4px;font-size:12.5px;padding:6px">Indlæs</button></div>
+    <div class="note" id="saveMsg" style="margin-top:4px"></div>
+
+    <ul class="tips" id="tips"></ul>
+  </aside>
+  <main id="view">
+    <canvas id="c"></canvas>
+    
+    <div id="hud"><span class="lbl" id="hudlbl">Åbning</span><input id="ang" type="range" min="0" max="180" step="1" value="110"><span class="val" id="angv">110°</span><button id="pp" style="padding:5px 10px;font-size:12.5px">Printposition</button></div>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*GEOM-START*/
+// ---------- Geometri (Z op, mm) ----------
+function T(o,a,b,c){o.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);}
+function Q(o,a,b,c,d){T(o,a,b,c);T(o,a,c,d);}
+function rr(w,d,r,seg){
+  r=Math.max(0,Math.min(r,w/2-0.01,d/2-0.01));
+  const pts=[],cs=[[w/2-r,d/2-r,0],[-w/2+r,d/2-r,90],[-w/2+r,-d/2+r,180],[w/2-r,-d/2+r,270]];
+  for(const [cx,cy,a0] of cs){for(let i=0;i<=seg;i++){const a=(a0+90*(seg?i/seg:0))*Math.PI/180;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}}
+  return pts;
+}
+function prism(o,pts,z0,z1){
+  if(z1<=z0)return;const n=pts.length;let cx=0,cy=0;pts.forEach(p=>{cx+=p[0];cy+=p[1]});cx/=n;cy/=n;
+  for(let i=0;i<n;i++){const p=pts[i],q=pts[(i+1)%n];
+    Q(o,[p[0],p[1],z0],[q[0],q[1],z0],[q[0],q[1],z1],[p[0],p[1],z1]);
+    T(o,[cx,cy,z1],[p[0],p[1],z1],[q[0],q[1],z1]);
+    T(o,[cx,cy,z0],[q[0],q[1],z0],[p[0],p[1],z0]);}
+}
+function tube(o,out,inn,z0,z1){
+  if(z1<=z0)return;const n=out.length;
+  for(let i=0;i<n;i++){const j=(i+1)%n,p=out[i],q=out[j],a=inn[i],b=inn[j];
+    Q(o,[p[0],p[1],z0],[q[0],q[1],z0],[q[0],q[1],z1],[p[0],p[1],z1]);
+    Q(o,[b[0],b[1],z0],[a[0],a[1],z0],[a[0],a[1],z1],[b[0],b[1],z1]);
+    Q(o,[p[0],p[1],z1],[q[0],q[1],z1],[b[0],b[1],z1],[a[0],a[1],z1]);
+    Q(o,[a[0],a[1],z0],[b[0],b[1],z0],[q[0],q[1],z0],[p[0],p[1],z0]);}
+}
+// afrundet rektangel som åben bane uden den forreste lige kant (starter ved hjørne 3, slutter ved hjørne 2)
+function lo_(pts,n1){return pts.slice(3*n1).concat(pts.slice(0,3*n1));}
+function band(o,O,I,z0,z1){
+  const m=O.length;
+  for(let i=0;i<m-1;i++){const p=O[i],q=O[i+1],a=I[i],b=I[i+1];
+    Q(o,[p[0],p[1],z0],[q[0],q[1],z0],[q[0],q[1],z1],[p[0],p[1],z1]);
+    Q(o,[b[0],b[1],z0],[a[0],a[1],z0],[a[0],a[1],z1],[b[0],b[1],z1]);
+    Q(o,[p[0],p[1],z1],[q[0],q[1],z1],[b[0],b[1],z1],[a[0],a[1],z1]);
+    Q(o,[a[0],a[1],z0],[b[0],b[1],z0],[q[0],q[1],z0],[p[0],p[1],z0]);}
+  let p=O[0],a=I[0];Q(o,[a[0],a[1],z0],[p[0],p[1],z0],[p[0],p[1],z1],[a[0],a[1],z1]);
+  p=O[m-1];a=I[m-1];Q(o,[p[0],p[1],z0],[a[0],a[1],z0],[a[0],a[1],z1],[p[0],p[1],z1]);
+}
+function box(o,x0,x1,y0,y1,z0,z1){if(x1<=x0||y1<=y0||z1<=z0)return;prism(o,[[x0,y0],[x1,y0],[x1,y1],[x0,y1]],z0,z1);}
+function circ(cy,cz,r,s){const p=[];for(let k=0;k<s;k++){const a=2*Math.PI*k/s;p.push([cy+r*Math.cos(a),cz+r*Math.sin(a)]);}return p;}
+function cylX(o,x0,x1,cy,cz,r,s=48){
+  if(x1<=x0)return;const c=circ(cy,cz,r,s);
+  for(let k=0;k<s;k++){const p=c[k],q=c[(k+1)%s];
+    Q(o,[x1,p[0],p[1]],[x0,p[0],p[1]],[x0,q[0],q[1]],[x1,q[0],q[1]]);
+    T(o,[x1,cy,cz],[x1,p[0],p[1]],[x1,q[0],q[1]]);
+    T(o,[x0,cy,cz],[x0,q[0],q[1]],[x0,p[0],p[1]]);}
+}
+function tubeX(o,x0,x1,cy,cz,ro,ri,s=48){
+  if(x1<=x0)return;const A=circ(cy,cz,ro,s),B=circ(cy,cz,ri,s);
+  for(let k=0;k<s;k++){const j=(k+1)%s,p=A[k],q=A[j],a=B[k],b=B[j];
+    Q(o,[x1,p[0],p[1]],[x0,p[0],p[1]],[x0,q[0],q[1]],[x1,q[0],q[1]]);
+    Q(o,[x0,a[0],a[1]],[x1,a[0],a[1]],[x1,b[0],b[1]],[x0,b[0],b[1]]);
+    Q(o,[x1,p[0],p[1]],[x1,q[0],q[1]],[x1,b[0],b[1]],[x1,a[0],a[1]]);
+    Q(o,[x0,a[0],a[1]],[x0,b[0],b[1]],[x0,q[0],q[1]],[x0,p[0],p[1]]);}
+}
+// Stjerneformet polygon i (y,z) ekstruderet langs X; første punkt skal kunne "se" alle andre (vifte-triangulering)
+function extX(o,pts,x0,x1){
+  if(x1<=x0)return;const n=pts.length;
+  for(let k=0;k<n;k++){const p=pts[k],q=pts[(k+1)%n];Q(o,[x1,p[0],p[1]],[x0,p[0],p[1]],[x0,q[0],q[1]],[x1,q[0],q[1]]);}
+  for(let k=1;k<n-1;k++){const a=pts[0],p=pts[k],q=pts[k+1];T(o,[x1,a[0],a[1]],[x1,p[0],p[1]],[x1,q[0],q[1]]);T(o,[x0,a[0],a[1]],[x0,q[0],q[1]],[x0,p[0],p[1]]);}
+}
+function halfAt(x,hw,hd,r){r=Math.max(0,Math.min(r,hw,hd));const ax=Math.abs(x);if(ax<=hw-r)return hd;if(ax>=hw)return hd-r;const dx=ax-(hw-r);return hd-r+Math.sqrt(Math.max(0,r*r-dx*dx));}
+
+// --- Triangulering af polygon med huller (øre-klipning med broer) ---
+function inTri(p,a,b,c){
+  const d1=(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]),d2=(c[0]-b[0])*(p[1]-b[1])-(c[1]-b[1])*(p[0]-b[0]),d3=(a[0]-c[0])*(p[1]-c[1])-(a[1]-c[1])*(p[0]-c[0]);
+  return d1>=-1e-12&&d2>=-1e-12&&d3>=-1e-12;
+}
+const same=(p,q)=>Math.abs(p[0]-q[0])<1e-9&&Math.abs(p[1]-q[1])<1e-9;
+function triangulate(outer,holes){
+  let poly=outer.map(p=>p.slice());
+  const hs=holes.map(h=>h.map(p=>p.slice())).sort((a,b)=>Math.max(...b.map(p=>p[0]))-Math.max(...a.map(p=>p[0])));
+  for(const h of hs){
+    let hi=0;for(let i=1;i<h.length;i++)if(h[i][0]>h[hi][0])hi=i;
+    const M=h[hi];let best=Infinity,bi=-1;const n=poly.length;
+    for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];
+      if((a[1]>M[1])!==(b[1]>M[1])){const x=a[0]+(M[1]-a[1])*(b[0]-a[0])/(b[1]-a[1]);if(x>M[0]&&x<best){best=x;bi=a[0]>b[0]?i:(i+1)%n;}}}
+    const I=[best,M[1]],Pp=poly[bi];let pick=bi,minA=Infinity;
+    for(let i=0;i<n;i++){const v=poly[i];if(v[0]<M[0])continue;
+      if(i===bi||inTri(v,M,I,Pp)||inTri(v,M,Pp,I)){const ang=Math.abs(Math.atan2(v[1]-M[1],v[0]-M[0]));
+        if(ang<minA-1e-12||(Math.abs(ang-minA)<1e-12&&v[0]<poly[pick][0])){minA=ang;pick=i;}}}
+    // Hvis punktet allerede bruges af en tidligere bro, vælg den forekomst hvis indvendige vinkel indeholder M
+    const dups=[];for(let i=0;i<n;i++)if(same(poly[i],poly[pick]))dups.push(i);
+    if(dups.length>1){
+      const ang=(v,b)=>{let a=Math.atan2(v[1]-b[1],v[0]-b[0]);return a<0?a+2*Math.PI:a;};
+      for(const i of dups){const b=poly[i],a=poly[(i+n-1)%n],c=poly[(i+1)%n];
+        const a0=ang(c,b),rel=x=>{let r=x-a0;while(r<0)r+=2*Math.PI;while(r>=2*Math.PI)r-=2*Math.PI;return r;};
+        if(rel(ang(M,b))<rel(ang(a,b))){pick=i;break;}}
+    }
+    const ring=h.slice(hi).concat(h.slice(0,hi+1)).map(p=>p.slice());
+    poly=poly.slice(0,pick+1).concat(ring,[poly[pick].slice()],poly.slice(pick+1));
+  }
+  const tris=[];const idx=poly.map((_,i)=>i);let guard=0;
+  while(idx.length>3&&guard++<200000){
+    let found=false;const L=idx.length;
+    for(let k=0;k<L;k++){
+      const ia=idx[(k+L-1)%L],ib=idx[k],ic=idx[(k+1)%L],a=poly[ia],b=poly[ib],c=poly[ic];
+      const cr=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(cr<=1e-10)continue;
+      let ok=true;
+      for(const j of idx){if(j===ia||j===ib||j===ic)continue;const p=poly[j];if(same(p,a)||same(p,b)||same(p,c))continue;if(inTri(p,a,b,c)){ok=false;break;}}
+      if(ok){tris.push([a,b,c]);idx.splice(k,1);found=true;break;}
+    }
+    if(!found){ // fjern et kollineært/degenereret punkt
+      let rm=-1;for(let k=0;k<L;k++){const a=poly[idx[(k+L-1)%L]],b=poly[idx[k]],c=poly[idx[(k+1)%L]];
+        const cr=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(Math.abs(cr)<=1e-10){rm=k;break;}}
+      if(rm<0)break;idx.splice(rm,1);
+    }
+  }
+  if(idx.length===3){const [a,b,c]=idx.map(i=>poly[i]);if((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])>0)tris.push([a,b,c]);}
+  return tris;
+}
+// plade med huller (huller angives i vilkårlig retning)
+function plate(o,outer,holes,z0,z1){
+  if(z1<=z0)return;
+  const area=p=>{let a=0;for(let i=0;i<p.length;i++){const q=p[i],r=p[(i+1)%p.length];a+=q[0]*r[1]-r[0]*q[1];}return a;};
+  const out=area(outer)>0?outer:outer.slice().reverse();
+  const hs=holes.map(h=>area(h)<0?h:h.slice().reverse());
+  for(const [a,b,c] of triangulate(out,hs)){T(o,[a[0],a[1],z1],[b[0],b[1],z1],[c[0],c[1],z1]);T(o,[a[0],a[1],z0],[c[0],c[1],z0],[b[0],b[1],z0]);}
+  for(const L of [out,...hs])for(let i=0;i<L.length;i++){const p=L[i],q=L[(i+1)%L.length];
+    Q(o,[p[0],p[1],z0],[q[0],q[1],z0],[q[0],q[1],z1],[p[0],p[1],z1]);}
+}
+// plade i lag: feats=[{d,hole}] hvor d er dybden målt fra den ene flade (top=true: fra oversiden)
+function layered(o,outer,feats,zA,zB,top,map){
+  const dst=map?[]:o;
+  const th=zB-zA;const ds=[0,th,...feats.map(f=>Math.min(f.d,th))].sort((a,b)=>a-b).filter((v,i,a)=>i===0||v-a[i-1]>1e-6);
+  for(let i=0;i<ds.length-1;i++){const d0=ds[i],d1=ds[i+1];
+    const app=feats.filter(f=>f.d>=d1-1e-9),holes=[],grp=new Map();
+    for(const f of app){if(f.g==null){holes.push(f.hole);continue;}const c=grp.get(f.g);if(!c||f.d<c.d)grp.set(f.g,f);}
+    for(const f of grp.values())holes.push(f.hole);
+    const z0=top?zB-d1:zA+d0,z1=top?zB-d0:zA+d1;
+    if(holes.length)plate(dst,outer,holes,z0,z1);else plate(dst,outer,[],z0,z1);}
+  if(map)pushMapped(o,dst,map);
+}
+// ekstrudering af en 2D-profil (u,v) langs w; map(u,v,w) skal være en rotation
+const MAP_Z=(u,v,w)=>[u,v,w],MAP_X=(u,v,w)=>[w,u,v],MAP_Y=(u,v,w)=>[u,-w,v];
+function pushMapped(o,src,map){for(let i=0;i<src.length;i+=3){const p=map(src[i],src[i+1],src[i+2]);o.push(p[0],p[1],p[2]);}}
+function extrude(o,poly,holes,a0,a1,map){if(a1<=a0)return;const tmp=[];plate(tmp,poly,holes||[],a0,a1);pushMapped(o,tmp,map||MAP_Z);}
+// C-formet ring (kabelkanal) med åbning i retning phi
+function cRing(cx,cy,ri,ro,phi,ow,seg=48){
+  const ao=Math.asin(Math.min(0.95,ow/2/ro)),ai=Math.asin(Math.min(0.95,ow/2/ri)),p=[];
+  for(let k=0;k<=seg;k++){const a=phi+ao+(2*Math.PI-2*ao)*k/seg;p.push([cx+ro*Math.cos(a),cy+ro*Math.sin(a)]);}
+  for(let k=0;k<=seg;k++){const a=phi+2*Math.PI-ai-(2*Math.PI-2*ai)*k/seg;p.push([cx+ri*Math.cos(a),cy+ri*Math.sin(a)]);}
+  return p;
+}
+// rektangel med afrundede forhjørner (v fra 0 til d)
+function rrFront(w,d,r,seg=8){r=Math.max(0,Math.min(r,w/2-0.01,d-0.01));const p=[[-w/2,0],[w/2,0]];
+  if(r<0.05){p.push([w/2,d],[-w/2,d]);return p;}
+  for(let k=0;k<=seg;k++){const a=Math.PI/2*k/seg;p.push([w/2-r+r*Math.cos(a),d-r+r*Math.sin(a)]);}
+  for(let k=0;k<=seg;k++){const a=Math.PI/2+Math.PI/2*k/seg;p.push([-w/2+r+r*Math.cos(a),d-r+r*Math.sin(a)]);}
+  return p;}
+// forsænket skruehul (90°) som lag-features, gruppe g
+function screwFeats(x,y,sd,hd,th,g){
+  const sr=sd/2+0.15,hr=Math.max(sr+0.3,hd/2+0.2),cd=Math.min(hr-sr,th-0.8),f=[{d:th,hole:circ(x,y,sr,32),g}];
+  for(let k=0;k<4;k++)f.push({d:cd*(k+1)/4,hole:circ(x,y,hr-(hr-sr)*k/4,32),g});
+  return f;}
+// tekst-bitmap → fyldkasser uden om bogstaverne (bogstaver bliver fordybninger)
+function textFill(tb,cb){const open=new Map();
+  for(let r=0;r<=tb.rows;r++){const runs=new Set();
+    if(r<tb.rows){let c=0;while(c<tb.cols){if(tb.data[r*tb.cols+c]){c++;continue;}let c1=c;while(c1<tb.cols&&!tb.data[r*tb.cols+c1])c1++;runs.add(c+'-'+c1);c=c1;}}
+    for(const k of [...open.keys()])if(!runs.has(k)){const o=open.get(k);cb(o.c0,o.c1,o.r0,r);open.delete(k);}
+    for(const k of runs)if(!open.has(k)){const [c0,c1]=k.split('-').map(Number);open.set(k,{c0,c1,r0:r});}}
+}
+
+// ---------- Skillevægge ----------
+// Tilføjer skillevægge og fingergreb i et indvendigt rum (iw×id, centreret i (ox,oy)), bund i z0, top i 'top'
+function addDividers(o,S,iw,id,ir,z0,top,ox,oy){
+  const dt=S.dt,DL=divLayout2(S,iw,id),{us,bands,U,V}=DL;
+  const tmp=[];const wallBox=r=>box(tmp,r.x0,r.x1,r.y0,r.y1,z0-0.1,top);
+  for(const u of us){const h=halfAt(u,U/2,V/2,ir)+0.3;wallBox(DL.rect(u-dt/2,u+dt/2,-h,h));}
+  const cells=[];
+  for(let c=0;c<=us.length;c++){
+    for(const v of bands[c]){const h=halfAt(v,V/2,U/2,ir)+0.3;wallBox(DL.rect(c===0?-h:us[c-1],c===us.length?h:us[c],v-dt/2,v+dt/2));}
+    const ua=c===0?-U/2:us[c-1]+dt/2,ub=c===us.length?U/2:us[c]-dt/2;
+    const vs=[-V/2,...bands[c].slice().sort((a,b)=>a-b),V/2];
+    for(let j=0;j<vs.length-1;j++){const va=j===0?-V/2:vs[j]+dt/2,vb=j===vs.length-2?V/2:vs[j+1]-dt/2;cells.push(DL.rect(ua,ub,va,vb));}
+  }
+  if(S.scoop>0){
+    for(const cl of cells){
+      const depth=cl.y1-cl.y0;let r=Math.min(S.scoop,depth*0.6,top-z0);if(r<1.5)continue;
+      let x0=cl.x0,x1=cl.x1;
+      const atFront=cl.y0<=-id/2+1e-6;
+      if(atFront){x0=Math.max(x0,-(iw/2-ir));x1=Math.min(x1,iw/2-ir);}
+      const leftWall=cl.x0<=-iw/2+1e-6,rightWall=cl.x1>=iw/2-1e-6;
+      x0-=leftWall?0:0.1;x1+=rightWall?0:0.1;
+      if(leftWall&&!atFront)x0=Math.max(x0,-halfAt(cl.y0+r,id/2,iw/2,ir));
+      if(rightWall&&!atFront)x1=Math.min(x1,halfAt(cl.y0+r,id/2,iw/2,ir));
+      if(x1-x0<2)continue;
+      const y0=cl.y0,pts=[[y0-0.2,z0-0.1],[y0+r,z0-0.1]];
+      for(let k=0;k<=12;k++){const a=(270-90*k/12)*Math.PI/180;pts.push([y0+r+r*Math.cos(a),z0+r+r*Math.sin(a)]);}
+      pts.push([y0-0.2,z0+r]);
+      extX(tmp,pts,x0,x1);
+    }
+  }
+  for(let i=0;i<tmp.length;i+=3)o.push(tmp[i]+ox,tmp[i+1]+oy,tmp[i+2]);
+  return cells.map(c=>({x0:c.x0+ox,x1:c.x1+ox,y0:c.y0+oy,y1:c.y1+oy}));
+}
+// P.divMode 'cols': primære vægge lodrette (langs dybden), sekundære vandrette pr. kolonne.
+// P.divMode 'rows': primære vægge vandrette (langs bredden), sekundære lodrette pr. række.
+// P.xs = primære positioner (brøkdel 0..1), P.cols[c] = sekundære i bånd c (brøkdel 0..1)
+function divLayout(E){return divLayout2(E,E.W-2*E.t,E.D-2*E.t);}
+function divLayout2(E,iw,id){
+  const rows=E.divMode==='rows';
+  const U=rows?id:iw,V=rows?iw:id;
+  const us=(E.xs||[]).map(f=>-U/2+f*U).sort((a,b)=>a-b);
+  const bands=us.concat([0]).map((_,c)=>((E.cols||[])[c]||[]).map(f=>-V/2+f*V));
+  const toXY=(u,v)=>rows?[v,u]:[u,v];
+  const rect=(u0,u1,v0,v1)=>rows?{x0:v0,x1:v1,y0:u0,y1:u1}:{x0:u0,x1:u1,y0:v0,y1:v1};
+  return {iw,id,U,V,us,bands,rows,toXY,rect};
+}
+function eff(P){
+  const E=Object.assign({},P);
+  E.mr=P.magD/2+0.15;E.md=P.magH+0.2;
+  const hasText=!!(P.tb&&P.text&&P.text.trim());
+  E.fbB=P.mag?Math.max(P.fb,E.md+0.8):P.fb;
+  E.fbL=Math.max(P.fb,P.mag?E.md+0.8:0,hasText?P.textDepth+0.8:0);
+  E.hasText=hasText;
+  if(P.dimMode==='inner'){E.W=P.W+2*P.t;E.D=P.D+2*P.t;E.Hb=P.Hb+E.fbB;}
+  return E;
+}
+function magCenters(E){
+  const iw=E.W-2*E.t,id=E.D-2*E.t,ir=Math.max(0,E.R-E.t),mr=E.mr;
+  const m=Math.max(mr+0.6,ir-(ir-mr-0.6)/Math.SQRT2);
+  const cx=iw/2-m,cy=id/2-m;
+  return {pts:[[cx,cy],[-cx,cy],[-cx,-cy],[cx,-cy]],m,ok:cx>mr+1&&cy>mr+1};
+}
+
+function build(P){
+  const E=eff(P);
+  const warn=[],B=[],L=[];
+  const {W,D,Hb,Hl,t,kr,hc}=E,fbB=E.fbB,fbL=E.fbL;
+  const R=Math.max(0,Math.min(E.R,W/2-0.5,D/2-0.5));
+  const H=Hb+Hl,za=H/2,ay=D/2+kr+hc;
+  const pr=Math.max(1.0,kr*0.5),ri=pr+hc;
+  if(kr-ri<1.0)warn.push('Ledradius er lille i forhold til frigangen – leddene bliver tynde. Øg ledradius.');
+  if(za-kr<0)warn.push('Ledradius er større end halvdelen af den samlede højde. Gør æsken højere eller leddene mindre.');
+  const seg=R>0.05?8:0;
+  const out=rr(W,D,R,seg),inn=rr(W-2*t,D-2*t,R-t,seg);
+  const iw=W-2*t,id=D-2*t,ir=Math.max(0,R-t);
+  if(Hb-fbB<3)warn.push('Bunden er meget lav i forhold til bundtykkelsen.');
+  if(Hl-fbL<1.5)warn.push('Låget er for lavt til lågets toptykkelse – gør låget højere.');
+
+  // magneter
+  let magHoles=[];
+  if(E.mag){const mc=magCenters(E);
+    if(!mc.ok)warn.push('Der er ikke plads til magneterne – gør æsken større eller magneterne mindre.');
+    else magHoles=mc.pts.map(([x,y])=>circ(x,y,E.mr,32));}
+
+  // ---- bund ----
+  layered(B,out,magHoles.map(h=>({d:E.md,hole:h})),0,fbB,false);
+  if(P.tbF){
+    // forvæggen som separat plade med fordybet tekst; resten af væggen som en åben bane
+    const n1=seg+1,tbF=P.tbF,xs=W/2-R;
+    band(B,lo_(out,n1),lo_(inn,n1),0,Hb);
+    const x0=-tbF.cols*tbF.res/2,zt=Hb/2+tbF.rows*tbF.res/2,zb=zt-tbF.rows*tbF.res;
+    layered(B,[[-xs,0],[xs,0],[xs,Hb],[-xs,Hb]],[{d:E.textDepth,hole:[[x0,zb],[-x0,zb],[-x0,zt],[x0,zt]]}],D/2-t,D/2,true,MAP_Y);
+    textFill(tbF,(c0,c1,r0,r1)=>box(B,x0+c0*tbF.res,x0+c1*tbF.res,-D/2,-D/2+E.textDepth,zt-r1*tbF.res,zt-r0*tbF.res));
+  }else tube(B,out,inn,0,Hb);
+
+  // ---- låg ----
+  const lidFeats=magHoles.map(h=>({d:E.md,hole:h}));
+  let tb=null;
+  if(E.hasText){
+    tb=P.tb;const x0=-tb.cols*tb.res/2,y1=tb.rows*tb.res/2;
+    lidFeats.push({d:E.textDepth,hole:[[x0,-y1],[-x0,-y1],[-x0,y1],[x0,y1]]});
+    // fyld uden om bogstaverne (bogstaverne bliver fordybninger)
+    const zt0=H-E.textDepth,open=new Map();
+    const flush=(k,r)=>{const o=open.get(k);box(L,x0+o.c0*tb.res,x0+o.c1*tb.res,y1-r*tb.res,y1-o.r0*tb.res,zt0,H);open.delete(k);};
+    for(let r=0;r<=tb.rows;r++){
+      const runs=new Set();
+      if(r<tb.rows){let c=0;while(c<tb.cols){if(tb.data[r*tb.cols+c]){c++;continue;}let c1=c;while(c1<tb.cols&&!tb.data[r*tb.cols+c1])c1++;runs.add(c+'-'+c1);c=c1;}}
+      for(const k of [...open.keys()])if(!runs.has(k))flush(k,r);
+      for(const k of runs)if(!open.has(k)){const [c0,c1]=k.split('-').map(Number);open.set(k,{c0,c1,r0:r});}
+    }
+  }
+  layered(L,out,lidFeats,H-fbL,H,true);
+  tube(L,out,inn,Hb,H);
+
+  let lipH=0,lipInfo=null;
+  if(E.lip){
+    lipH=Math.min(E.lipH,Hb-fbB-1);
+    if(lipH<E.lipH)warn.push('Kanthøjden er gjort mindre, så den kan være i bunden.');
+    const lb=Math.max(0.6,Math.min(1.5,Hl-fbL));
+    const ow=W-2*t-2*E.fit,od=D-2*t-2*E.fit,orr=R-t-E.fit;
+    const lo=rr(ow,od,orr,seg),li=rr(ow-2*E.lipT,od-2*E.lipT,orr-E.lipT,seg);
+    if(za>=Hb-1e-6){
+      tube(L,lo,li,Hb-lipH,Hb+lb);
+    }else{
+      const yw=halfAt(ow/2,(W-2*t)/2,(D-2*t)/2,Math.max(0,R-t))-E.fit;
+      const y1f=(y,z)=>{const dy=y-ay,dz=z-za,rho=Math.hypot(dy,dz);const s=(Hb-za)/rho;if(s>=1)return y;const f=Math.PI-Math.asin(s);return Math.max(y,ay+rho*Math.cos(f));};
+      let lo_=-od/2,hi_=od/2;
+      for(let it=0;it<50;it++){const m=(lo_+hi_)/2;let ok=true;for(let k=0;k<=6;k++){if(y1f(m,Hb-lipH*k/6)>yw){ok=false;break;}}if(ok)lo_=m;else hi_=m;}
+      const rc=Math.max(0,Math.min(orr,ow/2-0.01,od/2-0.01));
+      const ye=Math.min(lo_,od/2-rc-0.01,od/2-E.lipT-0.01);
+      if(ye>-od/2+rc+2){
+        const n1=seg+1,ow2=ow/2,iw2=ow/2-E.lipT;
+        const O=[[-ow2,ye],...lo.slice(2*n1,4*n1),[ow2,ye]],I=[[-iw2,ye],...li.slice(2*n1,4*n1),[iw2,ye]];
+        band(L,O,I,Hb-lipH,Hb+lb);
+      }else warn.push('Hængslet sidder for langt fra kanten til at låget kan få en indvendig kant – slå den fra eller gør låget højere.');
+    }
+    tube(L,rr(W-t,D-t,R-t/2,seg),li,Hb,Hb+lb);
+    lipInfo={od,ow,rc:Math.max(0,Math.min(orr,ow/2-0.01,od/2-0.01))};
+  }
+  // klik-lås: en lille knast på lågets kant, der klikker forbi en tilsvarende knast på bundens forvæg
+  if(E.latch&&E.lip&&lipInfo){
+    const avail=lipH-0.6,bh=Math.min(1.2,avail/2-0.05);
+    if(bh<0.5)warn.push('Kanthøjden er for lav til klik-låsen – øg kanthøjden til mindst 2,5 mm.');
+    else{
+      const lw=Math.min(20,lipInfo.ow-2*lipInfo.rc-4);
+      if(lw>4){
+        const b=(E.latchS+E.fit)/2,yf=-lipInfo.od/2,yw=-id/2;
+        const za1=Hb-lipH+0.3,zc1=za1+bh,za2=zc1+0.1,zc2=za2+bh;
+        extX(L,[[yf+0.05,za1],[yf+0.05,zc1],[yf-b,(za1+zc1)/2]],-lw/2,lw/2);
+        extX(B,[[yw-0.05,za2],[yw+b,(za2+zc2)/2],[yw-0.05,zc2]],-lw/2-2,lw/2+2);
+      }
+    }
+  }
+  if(E.grip){const gw=Math.min(24,W-2*R-4);if(gw>4)box(L,-gw/2,gw/2,-D/2-2.5,-D/2+t/2,Hb,H);}
+
+  // ---- skillevægge ----
+  const dt=E.dt;
+  const topFull=E.lip?Hb-lipH-E.fit-0.2:Hb-0.2;
+  const top=fbB+(topFull-fbB)*Math.max(0.1,Math.min(1,(E.divH||100)/100));
+  const cells=addDividers(B,E,iw,id,ir,fbB,top,0,0);
+
+  // ---- hængsel ----
+  const n=E.n,g=hc,Lh=W-2*Math.max(R,t)-2,sl=(Lh-(n-1)*g)/n;
+  if(sl<3)warn.push('For mange led til bredden – vælg færre led.');
+  else{
+    for(let i=0;i<n;i++){const x0=-Lh/2+i*(sl+g),x1=x0+sl;
+      if(i%2===0){
+        cylX(B,x0,x1,ay,za,kr);
+        box(B,x0,x1,D/2-t/2,ay,0,Math.min(za,Hb));
+        if(za>Hb)box(B,x0,x1,D/2+hc,ay,0,za);
+      }else{
+        tubeX(L,x0,x1,ay,za,kr,ri);
+        const ym=ay-(ri+kr)/2;
+        box(L,x0,x1,D/2-t/2,ym,Math.max(za,Hb),H);
+        if(za<Hb)box(L,x0,x1,D/2+hc,ym,za,H);
+      }
+    }
+    cylX(B,-Lh/2+sl/2,Lh/2-sl/2,ay,za,pr,32);
+  }
+  return {B,L,ay,za,H,E,warn,cells,inner:[iw,id,Hb-fbB],outer:[W,ay+kr+D/2,H],printLen:2*ay+D};
+}
+// Lille testprint af hængslet med samme frigang og ledstørrelse
+function hingeTestParams(P){
+  const h=Math.max(2*P.kr+2,8);
+  return {W:34,D:12,Hb:h,Hl:h,R:0,t:P.t,fb:P.fb,lip:false,lipH:3,lipT:1.2,fit:P.fit,grip:false,latch:false,latchS:0.4,
+    n:3,kr:P.kr,hc:P.hc,divMode:'cols',xs:[],cols:[[]],dt:1.2,divH:100,scoop:0,mag:false,magD:6,magH:2,text:'',textDepth:0.6,textSize:8,dimMode:'outer'};
+}
+function rotLid(L,ay,za,deg){
+  const th=deg*Math.PI/180,c=Math.cos(th),s=Math.sin(th),o=new Array(L.length);
+  for(let i=0;i<L.length;i+=3){const dy=L[i+1]-ay,dz=L[i+2]-za;o[i]=L[i];o[i+1]=ay+dy*c+dz*s;o[i+2]=za-dy*s+dz*c;}
+  return o;
+}
+function printTris(m){const all=m.B.concat(rotLid(m.L,m.ay,m.za,180));for(let i=1;i<all.length;i+=3)all[i]-=m.ay;return all;}
+function stl(tris){
+  const n=tris.length/9,buf=new ArrayBuffer(84+n*50),dv=new DataView(buf);
+  const hdr='Haengslet aeske - print-in-place';for(let i=0;i<hdr.length;i++)dv.setUint8(i,hdr.charCodeAt(i));
+  dv.setUint32(80,n,true);let o=84;
+  for(let i=0;i<tris.length;i+=9){
+    const ax=tris[i],ayy=tris[i+1],az=tris[i+2],bx=tris[i+3],by=tris[i+4],bz=tris[i+5],cx=tris[i+6],cy=tris[i+7],cz=tris[i+8];
+    let nx=(by-ayy)*(cz-az)-(bz-az)*(cy-ayy),ny=(bz-az)*(cx-ax)-(bx-ax)*(cz-az),nz=(bx-ax)*(cy-ayy)-(by-ayy)*(cx-ax);
+    const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;
+    dv.setFloat32(o,nx,true);dv.setFloat32(o+4,ny,true);dv.setFloat32(o+8,nz,true);o+=12;
+    for(let k=0;k<9;k++){dv.setFloat32(o,tris[i+k],true);o+=4;}
+    dv.setUint16(o,0,true);o+=2;
+  }
+  return new Uint8Array(buf);
+}
+
+// ================= SKÅDIS =================
+// Pladen: 5 mm tyk, slidser 5×15 mm (R2,5), 40 mm mellem slidser i en række, rækker forskudt 20 mm.
+// Krogene sidder fast på tilbehørets bagside: en afrundet krog øverst og evt. en tap 40 mm længere nede.
+const SK={pitch:40,cl:0.3,hw:2.8,bh:4.2,Ld:5.6,tw:4.4,Ro:2.4,rf:0.25,bh2:3.8};
+SK.dropB=2.5-Math.sqrt(2.5**2-(SK.tw/2)**2); // krogens flade underside hviler på slidsens runde bund
+function skadisCols(W,edge){const k=Math.floor((W-2*edge-SK.tw)/SK.pitch);return k>=1?[-k*SK.pitch/2,k*SK.pitch/2]:[0];}
+// profil (u,v): u = 0 ved tilbehørets bagside, + ind mod væggen (SKÅDIS-pladen er u∈[0,Tb]); A = startpunkt inde i bagpladen
+function skHookProfile(A,top,Tb){
+  const {cl,hw,bh,Ld,Ro,rf}=SK,B=Tb+cl,C=B+hw,sb=top-bh,tip=sb-Ld,p=[[A,sb]];
+  for(let k=0;k<=6;k++){const a=Math.PI/2-Math.PI/2*k/6;p.push([B-rf+rf*Math.cos(a),sb-rf+rf*Math.sin(a)]);}
+  p.push([B,tip+hw/2]);
+  for(let k=1;k<=12;k++){const a=Math.PI+Math.PI*k/12;p.push([(B+C)/2+hw/2*Math.cos(a),tip+hw/2+hw/2*Math.sin(a)]);}
+  p.push([C,top-Ro]);
+  for(let k=1;k<=8;k++){const a=Math.PI/2*k/8;p.push([C-Ro+Ro*Math.cos(a),top-Ro+Ro*Math.sin(a)]);}
+  p.push([A,top]);
+  return p;
+}
+// tap (kile) der går ind i en slids længere nede; skrå overside så den kan printes på hovedet
+function skStubProfile(A,vs,Tb){const e=Tb-0.5;return [[A,vs],[e,vs],[e,vs+2.5],[1,vs+2.5],[A,vs+2.5+(1-A)]];}
+// nederste krog ("flueben"): som den øverste krog, men med skrå overside så den kan printes på hovedet
+function skHook2Profile(A,top,Tb){
+  const {cl,hw,Ld,rf}=SK,bh=SK.bh2,B=Tb+cl,C=B+hw,sb=top-bh,tip=sb-Ld,r2=1.2,p=[[A,sb]];
+  // højden inde i slidsen skal kunne passere, mens tilbehøret er løftet (Ld+0,3) under isætning
+  const h0=15-2*SK.dropB-(Ld+0.3)-0.3,us=Math.max(0,Math.min(Tb,h0-bh));
+  for(let k=0;k<=6;k++){const a=Math.PI/2-Math.PI/2*k/6;p.push([B-rf+rf*Math.cos(a),sb-rf+rf*Math.sin(a)]);}
+  p.push([B,tip+hw/2]);
+  for(let k=1;k<=12;k++){const a=Math.PI+Math.PI*k/12;p.push([(B+C)/2+hw/2*Math.cos(a),tip+hw/2+hw/2*Math.sin(a)]);}
+  p.push([C,top-r2]);
+  for(let k=1;k<=6;k++){const a=Math.PI/2*k/6;p.push([C-r2+r2*Math.cos(a),top-r2+r2*Math.sin(a)]);}
+  p.push([us,top],[A,top+(us-A)]);
+  return p;
+}
+function skHook2V(top,lo){let best=null;for(let k=1;k<10;k++){const t2=top-SK.bh+SK.bh2-SK.pitch*k;if(t2-SK.bh2-SK.Ld<lo+0.5)break;best=t2;}return best;}
+// placering: krog-top 'top'; returnerer tap-bund for nederste tap der kan være over 'lo'
+function skStubV(top,lo){const slotBot=top-SK.bh-SK.dropB;let best=null;
+  for(let k=1;k<10;k++){const vs=slotBot-SK.pitch*k+1.3;if(vs<lo)break;best=vs;}return best;}
+// byg kroge (og tappe) i (x,y,z): kolonner xs, bagsiden ved y=yBack (væggen i +y), bagpladens tykkelse tb
+// lower: 'hook' (krog med flueben), 'stub' (tap) eller 'none'
+function skLowerProfile(A,top,Tb,lo,lower){
+  if(lower==='hook'){const t2=skHook2V(top,lo);return t2!=null?skHook2Profile(A,t2,Tb):null;}
+  if(lower==='stub'){const vs=skStubV(top,lo);return vs!=null?skStubProfile(A,vs,Tb):null;}
+  return null;}
+function skHooks(o,xs,top,tb,Tb,yBack,lo,lower){
+  const A=-tb+0.3,hook=skHookProfile(A,top,Tb),low=skLowerProfile(A,top,Tb,lo,lower||'hook');
+  for(const x of xs)for(const pr of low?[hook,low]:[hook]){const tmp=[];extrude(tmp,pr,[],x-SK.tw/2,x+SK.tw/2,MAP_X);
+    for(let i=0;i<tmp.length;i+=3)o.push(tmp[i],tmp[i+1]+yBack,tmp[i+2]);}
+  return {stub:!!low||lower==='none'};
+}
+// vend på hovedet (rotation 180° om x): top på printpladen
+function flipZ(tr,H){const o=new Array(tr.length);for(let i=0;i<tr.length;i+=3){o[i]=tr[i];o[i+1]=-tr[i+1];o[i+2]=H-tr[i+2];}return o;}
+const f1n=v=>(+v).toFixed(1).replace('.',',');
+
+// ================= SKUFFER =================
+// Almindelig: hylder, printes på ryggen.  SKÅDIS: ingen hylder – skufferne kører på skinner i sidevæggene, skabet printes på hovedet.
+function drawerCalc(P){
+  const n=Math.max(1,P.n|0),t=P.t,st=P.st,c=P.c,sk=!!P.skadis;
+  let sw,sh,z,dh,rail=null;
+  if(!sk){sw=P.W-2*t;sh=(P.H-2*t-(n-1)*st)/n;z=Array.from({length:n},(_,k)=>t+k*(sh+st));dh=sh-c;}
+  else{const rd=1.6,hr=3,tsw=t+rd+c,g=Math.max(1,2*c);sw=P.W-2*tsw;sh=(P.H-t-c-(n-1)*g)/n;z=Array.from({length:n},(_,k)=>k*(sh+g));dh=sh;
+    const G=2*c+0.2;rail={rd,hr,tsw,g,zr:dh-1.5,G,bC:G/2+0.2,bD:G/2+0.25};}
+  const sd=P.D-t,dw=sw-2*c,dd=sd-c;
+  const iw=dw-2*P.dwt,id=dd-P.dwt-P.ft,ir=Math.max(0,Math.min(P.rd,dw/2-1,dd/2-1)-P.dwt),oy=(P.ft-P.dwt)/2;
+  const nd=P.handle==='notch'?Math.min(dh*0.45,P.nd):0;
+  return {n,sw,sh,sd,dw,dh,dd,iw,id,ir,oy,nd,z,rail,bumpD:c*0.45,bumpC:c*0.55+0.45};
+}
+function buildCabinet(P,C){
+  const o=[],{W,D,H,t,st}=P;
+  if(!C.rail){
+    box(o,-W/2,W/2,D/2-t,D/2,0,H);
+    box(o,-W/2,-W/2+t,-D/2,D/2,0,H);box(o,W/2-t,W/2,-D/2,D/2,0,H);
+    box(o,-W/2,W/2,-D/2,D/2,0,t);box(o,-W/2,W/2,-D/2,D/2,H-t,H);
+    for(let k=1;k<C.n;k++){const z0=t+k*C.sh+(k-1)*st;box(o,-W/2,W/2,-D/2,D/2,z0,z0+st);}
+    if(P.stop){const sw2=Math.min(8,C.dw/4),ya=-D/2+1.2,yb=ya+2.6;
+      for(let k=0;k<C.n;k++){const zt=C.z[k]+C.sh;extX(o,[[(ya+yb)/2,zt-C.bumpC],[yb,zt+0.05],[ya,zt+0.05]],-sw2,sw2);}}
+    return {tris:o,hooks:null};
+  }
+  // SKÅDIS-skab
+  const R=C.rail,xi=W/2-R.tsw,c=P.c;
+  box(o,-W/2,W/2,D/2-t,D/2,0,H);
+  box(o,-W/2,W/2,-D/2,D/2,H-t,H);
+  // højre sidevæg som profil (x,z) med riller, ekstruderet i dybden
+  const prof=[[xi,0],[W/2,0],[W/2,H],[xi,H]];
+  for(let k=C.n-1;k>=0;k--){const zr=C.z[k]+R.zr;
+    prof.push([xi,zr+R.G],[xi+R.rd,zr+R.G],[xi+R.rd,zr-R.hr+c],[xi,zr-R.hr-R.rd+c]);}
+  extrude(o,prof,[],-D/2,D/2,MAP_Y);
+  extrude(o,prof.map(([x,z])=>[-x,z]).reverse(),[],-D/2,D/2,MAP_Y);
+  if(P.stop){const ya=-D/2+1.2,yb=ya+2.6;
+    for(let k=0;k<C.n;k++){const zt=C.z[k]+R.zr+R.G;for(const s of [-1,1]){const a=s>0?xi-0.01:-xi-R.rd,b=s>0?xi+R.rd:-xi+0.01;
+      extX(o,[[(ya+yb)/2,zt-R.bC],[yb,zt+0.05],[ya,zt+0.05]],a,b);}}}
+  const hk=skHooks(o,skadisCols(W,R.tsw+3),H,t,P.Tb,D/2,1,P.skLow);
+  return {tris:o,hooks:hk};
+}
+function buildDrawer(P,C,tb){
+  const o=[],w2=C.dw/2,d2=C.dd/2,dwt=P.dwt,ft=P.ft,dh=C.dh;
+  const rd=Math.max(0,Math.min(P.rd,w2-1,d2-1)),seg=rd>0.05?6:0,n1=seg+1;
+  const lo=rr(C.dw,C.dd,rd,seg),li=rr(C.dw-2*dwt,C.dd-2*dwt,rd-dwt,seg);
+  const O=[[w2,-d2],...lo.slice(0,2*n1),[-w2,-d2]];
+  const I=[[w2-dwt,-d2+ft],...li.slice(0,2*n1),[-w2+dwt,-d2+ft]];
+  prism(o,O,0,P.dfb);
+  band(o,O,I,0,dh);
+  let front;
+  if(P.handle==='notch'&&C.nd>2){
+    const nw=Math.min(P.nw,C.dw*0.6),r=nw/2,nd=C.nd;front=[[-w2,0],[w2,0],[w2,dh],[r,dh]];
+    if(nd>r){const zb=dh-nd+r;front.push([r,zb]);for(let k=1;k<16;k++){const a=-Math.PI*k/16;front.push([r*Math.cos(a),zb+r*Math.sin(a)]);}front.push([-r,zb]);}
+    else{for(let k=1;k<16;k++){const a=-Math.PI*k/16;front.push([r*Math.cos(a),dh+nd*Math.sin(a)]);}}
+    front.push([-r,dh],[-w2,dh]);
+  }else front=[[-w2,0],[w2,0],[w2,dh],[-w2,dh]];
+  const feats=[];let tinfo=null;
+  if(tb){const zc=(dh-C.nd)/2+0.5,x0=-tb.cols*tb.res/2,zt=zc+tb.rows*tb.res/2;
+    feats.push({d:P.textDepth,hole:[[x0,zt-tb.rows*tb.res],[-x0,zt-tb.rows*tb.res],[-x0,zt],[x0,zt]]});tinfo={x0,zt};}
+  layered(o,front,feats,d2-ft,d2,true,MAP_Y);
+  if(tinfo)textFill(tb,(c0,c1,r0,r1)=>box(o,tinfo.x0+c0*tb.res,tinfo.x0+c1*tb.res,-d2,-d2+P.textDepth,tinfo.zt-r1*tb.res,tinfo.zt-r0*tb.res));
+  if(P.handle==='tab'){const tw=Math.min(50,C.dw*0.5),p=Math.min(8,dh*0.3);
+    extX(o,[[-d2+0.2,dh-2-p-0.2],[-d2+0.2,dh],[-d2-p,dh],[-d2-p,dh-2]],-tw/2,tw/2);}
+  if(P.handle==='bar'){const bw=Math.min(60,C.dw*0.6),zt=Math.min(dh-2,dh/2+5),zb=zt-6;
+    for(const s of [-1,1])box(o,s<0?-bw/2:bw/2-6,s<0?-bw/2+6:bw/2,-d2-12,-d2+0.2,zb,zt);
+    box(o,-bw/2,bw/2,-d2-12,-d2-8,zb,zt);}
+  const top=P.dfb+(dh-0.5-P.dfb)*Math.max(0.1,Math.min(1,(P.divH||100)/100));
+  const cells=addDividers(o,P,C.iw,C.id,C.ir,P.dfb,top,0,C.oy);
+  if(P.stop&&!C.rail){const sw2=Math.min(8,C.dw/4);extX(o,[[d2-dwt+0.15,dh-0.05],[d2-0.15,dh-0.05],[d2-dwt/2,dh+C.bumpD]],-sw2,sw2);}
+  if(C.rail){const R=C.rail,zr=R.zr;
+    for(const s of [1,-1]){const pr=[[w2-0.3,zr],[w2+R.rd,zr],[w2+R.rd,zr-R.hr],[w2-0.3,zr-R.hr-R.rd-0.3]].map(([x,z])=>[s*x,z]);
+      extrude(o,pr,[],-d2,d2,MAP_Y);
+      if(P.stop){const a=s>0?w2-0.01:-w2-R.rd,b=s>0?w2+R.rd:-w2+0.01;extX(o,[[d2-2.6,zr-0.05],[d2-0.2,zr-0.05],[d2-1.4,zr+R.bD]],a,b);}}}
+  return {tris:o,cells};
+}
+function buildDrawers(P){
+  const C=drawerCalc(P),warn=[];
+  if(C.sh<(C.rail?14:12))warn.push('Skufferne bliver meget lave – færre skuffer eller større højde.');
+  if(C.iw<10||C.id<10)warn.push('Skufferne bliver meget smalle – gør skabet større.');
+  const cb=buildCabinet(P,C),cab=cb.tris;
+  if(cb.hooks&&!cb.hooks.stub)warn.push('Skabet er for lavt til den nederste SKÅDIS-krog/tap (ca. 55 mm) – det hænger kun i de øverste kroge.');
+  const labels=(P.labels||[]);const tbs=P.tbs||[];
+  const drawers=[];const cache=new Map();
+  for(let k=0;k<C.n;k++){const key=tbs[k]?'t'+k:'none';
+    if(!cache.has(key))cache.set(key,buildDrawer(P,C,tbs[k]||null));drawers.push({...cache.get(key),key,label:labels[k]||''});}
+  return {C,cab,drawers,warn};
+}
+// printretning: almindeligt skab på ryggen, SKÅDIS-skab på hovedet
+function cabinetPrint(tr,P,C){if(C&&C.rail)return flipZ(tr,P.H);
+  const D=P.D,o=new Array(tr.length);for(let i=0;i<tr.length;i+=3){o[i]=tr[i];o[i+1]=tr[i+2];o[i+2]=-tr[i+1]+D/2;}return o;}
+
+// ================= HOLDER =================
+// P.holes = [{s:'c'|'s', a, b, n}]  c = rundt hul (Ø a), s = slids (længde a, bredde b). P.sor: 'along' (slids langs væggen) | 'out' (ud fra væggen)
+function holderLayout(P){
+  const items=[];for(const h of (P.holes||[]))for(let i=0;i<Math.max(0,h.n|0);i++)items.push(h);
+  const ext=h=>h.s==='s'?(P.sor==='out'?[h.b,h.a]:[h.a,h.b]):[h.a,h.a];
+  const g=P.hgap,m=P.hm;const W=2*m+items.reduce((s,h)=>s+ext(h)[0],0)+Math.max(0,items.length-1)*g;
+  let x=-W/2+m;const cs=items.map(h=>{const [ex,ez]=ext(h);const c=x+ex/2;x+=ex+g;return {cx:c,ex,ez,h};});
+  return {W,cs,dmax:cs.length?Math.max(...cs.map(c=>c.ez)):10};
+}
+function holePoly(c,cz,g=0){const h=c.h;if(h.s!=='s')return circ(c.cx,cz,h.a/2+g,48);
+  const ex=c.ex+2*g,ez=c.ez+2*g;return rr(ex,ez,Math.min(ex,ez)/2-0.01,8).map(([x,y])=>[x+c.cx,y+cz]);}
+// tilspidsede huller: trin fra største (ved fladen) til nominel størrelse i bunden af tykkelsen 'th'
+function taperFeats(cs,cz,th,deg,extra){const n=deg>0.05?Math.max(4,Math.min(12,Math.ceil(th/0.8))):1,tn=Math.tan(deg*Math.PI/180),f=[];
+  cs.forEach((c,i)=>{for(let k=0;k<n;k++)f.push({d:th*(k+1)/n,hole:holePoly(c,cz,th*(n-1-k)/n*tn),g:i});if(extra)extra(c,i,f);});return f;}
+// rektangel (x fra -w/2..w/2, y fra 0..h) med valgfri radius pr. hjørne [nederst-venstre, nederst-højre, øverst-højre, øverst-venstre]
+function rectR(w,h,rs,seg=8){const cs=[[-w/2,0,180],[w/2,0,270],[w/2,h,0],[-w/2,h,90]],p=[];
+  cs.forEach(([x,y,a0],i)=>{const r=Math.max(0,Math.min(rs[i],w/2-0.01,h/2-0.01));if(r<0.05){p.push([x,y]);return;}
+    const cx=x-Math.sign(x)*r,cy=y===0?r:h-r;for(let k=0;k<=seg;k++){const a=(a0+90*k/seg)*Math.PI/180;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}});
+  return p;}
+function buildHolder(P){
+  const warn=[],o=[],L=holderLayout(P),W=Math.max(L.W,P.mount==='skadis'&&P.mode==='wall'?58:0),m=P.hm,R=Math.max(0,Math.min(P.R,W/2-1));
+  const taper=P.taper||0;
+  if(!L.cs.length)warn.push('Tilføj mindst ét hul.');
+  if(P.mode==='block'){
+    const D=L.dmax+2*m,H=P.bh,hd=Math.max(1,H-P.bfb);
+    const out=rr(W,D,Math.min(R,D/2-1),8);
+    const tn=Math.tan(taper*Math.PI/180);
+    if(taper>0&&hd*tn>Math.min(P.hgap,m)*0.9)warn.push('Tilspidsningen er så stor, at hullerne næsten løber sammen i toppen – mindsk vinklen eller øg afstanden.');
+    const feats=taperFeats(L.cs,0,hd,taper,(c,i,f)=>{if(P.drain)f.push({d:H,hole:circ(c.cx,0,1.6,24),g:i});});
+    layered(o,out,feats,0,H,true);
+    return {tris:o,view:o,warn,dims:[W,D,H],print:o,count:L.cs.length};
+  }
+  // vægholder – bygget i printretning (bagpladen på pladen): x = bredde, y = op, z = ud fra væggen
+  const tb=P.wt,ts=P.st,Hb=P.wh,gap=P.wg,Dsh=tb+gap+L.dmax+m,skm=P.mount==='skadis';
+  if(Hb<ts*(P.tray?2:1)+10)warn.push('Bagpladen er lav – gør den højere.');
+  // bagpladen er firkantet hvor hylde og bakke sidder, afrundet ellers
+  const rb=P.tray?0:R;
+  const back=rectR(W,Hb,[rb,rb,0,0]);
+  const sf=[];
+  if(P.mount==='screw'){const ys=P.tray?Hb/2:(Hb-ts)/2,xs=W<55?[0]:[-W/4,W/4];
+    xs.forEach((x,i)=>sf.push(...screwFeats(x,ys,P.sd,P.shd,tb,'s'+i)));}
+  layered(o,back,sf,0,tb,true);
+  const shelf=rrFront(W,Dsh,R);
+  // hylde med tilspidsede huller (bredest i oversiden)
+  layered(o,shelf,taperFeats(L.cs,tb+gap+L.dmax/2,ts,taper),-Hb,-(Hb-ts),false,MAP_Y);
+  // hvor langt hylden når ud ved en given x (pga. afrundede forhjørner)
+  const reach=x=>{const ax=Math.abs(x);if(R<0.05||ax<=W/2-R)return Dsh;const dx=ax-(W/2-R);return Dsh-R+Math.sqrt(Math.max(0,R*R-dx*dx));};
+  const tt=P.trayT||2,sw=Math.max(1.6,ts);
+  if(P.tray&&!skm){extrude(o,shelf,[],-tt,0,MAP_Y);
+    box(o,-W/2+R,W/2-R,0,tt+P.lip,Dsh-2,Dsh);}
+  let trayPart=null,trayView=null;
+  if(skm&&P.tray){
+    // sidevægge følger hyldens afrundede hjørner; løs drypbakke på 45°-skinner
+    for(const s of [1,-1]){const pl=[[W/2-sw,0],[W/2,0]];for(let k=0;k<=8;k++){const x=W/2-sw*k/8;pl.push([x,reach(x)]);}
+      extrude(o,pl.map(([x,z])=>[s*x,z]),[],-Hb,0,MAP_Y);}
+    const xi=W/2-sw,Lg=2.6,Lc=2,c=0.3,Wt=2*(xi-c),ft=Math.max(Lc,tt),lipH=ft+P.lip,zr=reach(W/2)-0.5,Dt=zr-tb-0.5;
+    for(const s of [1,-1])extrude(o,[[s*(xi+0.1),0],[s*(xi-Lg),0],[s*(xi+0.1),Lg+0.1]],[],tb,zr,MAP_Z);
+    const t=[],w2=Wt/2;
+    extrude(t,[[-w2+Lc,0],[w2-Lc,0],[w2,Lc],[w2,lipH],[w2-ft,lipH],[w2-ft,ft],[-w2+ft,ft],[-w2+ft,lipH],[-w2,lipH],[-w2,Lc]],[],-Dt/2,Dt/2,MAP_Y);
+    for(const y of [-Dt/2,Dt/2-ft]){box(t,-w2+Lc,w2-Lc,y,y+ft,0,lipH);box(t,-w2,w2,y,y+ft,Lc,lipH);}
+    trayPart=t;const zt=Lg-Lc-c,yc=-tb-0.25-Dt/2;trayView=t.map((v,i)=>i%3===1?v+yc:i%3===2?v+zt:v);
+  }else{
+    // støttetrekanter – holdes inden for hyldens afrundede hjørner
+    const ys=Hb-ts,Dg=Math.max(4,Math.min(reach(W/2)-0.8,Dsh-1,(P.tray?Hb-2*ts:Hb-ts)*0.7,30));
+    for(const [a,b] of [[-W/2,-W/2+sw],[W/2-sw,W/2]])extX(o,[[ys-Dg,0],[ys+0.1,0],[ys+0.1,Dg]],a,b);
+  }
+  const view=new Array(o.length);for(let i=0;i<o.length;i+=3){view[i]=o[i];view[i+1]=-o[i+2];view[i+2]=o[i+1];}
+  let print=o,hk=null;
+  if(skm){hk=skHooks(view,skadisCols(W,Math.max(R,3)+3),Hb,tb,P.Tb,0,1,P.skLow);print=flipZ(view,Hb);
+    if(!hk.stub)warn.push('Bagpladen er for lav til den nederste SKÅDIS-krog/tap (ca. 55 mm) – holderen hænger kun i de øverste kroge.');}
+  return {tris:print,view,warn,dims:[W,Dsh,Hb],print,count:L.cs.length,skadis:skm,flipped:skm,trayPart,trayView};
+}
+
+// ================= KABELCLIPS =================
+function buildCable(P){
+  const warn=[],o=[],N=Math.max(1,P.cn|0),dc=P.cd,wc=P.cw,ri=dc/2+0.25,ro=ri+wc,ow=Math.max(1,dc*P.co),w=P.w;
+  const pitch=2*ro-wc;
+  if(P.ctype==='desk'){
+    // profil i XY (x ind over bordet, y op), ekstruderet i z = clipsens bredde → printes fladt
+    const T=P.T,th=P.th,Lt=P.jaw,sq=P.sq;
+    let Lb=P.jaw;if(P.place==='under')Lb=Math.max(Lb,N*pitch+wc+2);
+    const clamp=[[-th,-th],[Lb,-th],[Lb,sq],[Lb-1.5,sq+0.6],[0,0],[0,T],[Lt-1.5,T],[Lt,T+0.6],[Lt,T+th],[-th,T+th]];
+    extrude(o,clamp,[],0,w,MAP_Z);
+    for(let k=0;k<N;k++){
+      if(P.place==='under')extrude(o,cRing(ro+k*pitch+1,-th-ro+0.8,ri,ro,-Math.PI/2,ow),[],0,w,MAP_Z);
+      else extrude(o,cRing(-th-ro+0.8,T+th-ro-k*pitch,ri,ro,Math.PI,ow),[],0,w,MAP_Z);
+    }
+    // visning: kablet løber langs bordkanten (x), bordet går ind i +y
+    const view=new Array(o.length);for(let i=0;i<o.length;i+=3){view[i]=o[i+2]-w/2;view[i+1]=o[i];view[i+2]=o[i+1];}
+    return {tris:o,view,warn,ghost:{x0:-w*2,x1:w*2,y0:0,y1:60,z0:0,z1:T},dims:[w,Lb+th,T+2*th]};
+  }
+  if(P.mount==='skadis'){
+    // flad profil (u = mod væggen, v = op) der printes liggende: bagstykke med krog øverst og kanaler foran
+    const bt=Math.max(2.4,P.bt),top=0,A=-bt+0.3,cu=-bt-ro+0.8;
+    const vlast=top-ro-1.2-(N-1)*pitch,lowSel=P.skLow||'none';let vb=Math.min(vlast-ro*0.6,top-SK.bh-SK.Ld-4);
+    if(lowSel!=='none')vb=Math.min(vb,top-SK.pitch-SK.bh-SK.Ld-1.5);
+    let bar=[[-bt,vb],[0,vb],[0,top],[-bt,top]];
+    const zh=P.hookPos==='center'?w/2-SK.tw/2:0;
+    extrude(o,bar,[],0,w,MAP_Z);
+    extrude(o,skHookProfile(A,top,P.Tb),[],zh,zh+SK.tw,MAP_Z);
+    const low=skLowerProfile(A,top,P.Tb,vb+0.5,lowSel);
+    if(low)extrude(o,low,[],zh,zh+SK.tw,MAP_Z);
+    for(let k=0;k<N;k++)extrude(o,cRing(cu,top-ro-1.2-k*pitch,ri,ro,Math.PI,ow),[],0,w,MAP_Z);
+    const view=new Array(o.length);for(let i=0;i<o.length;i+=3){view[i]=o[i+2]-w/2;view[i+1]=o[i];view[i+2]=o[i+1]-vb;}
+    let mnu=0;for(let i=0;i<o.length;i+=3)mnu=Math.min(mnu,o[i]);
+    return {tris:o,view,warn,dims:[w,-mnu+P.Tb+SK.cl+SK.hw,top-vb],skadis:{Tb:P.Tb,vOff:-vb,top:top-vb,hx:zh+SK.tw/2-w/2},needsSupport:zh>0};
+  }
+  // vægclips: bundplade på pladen, kanaler ovenpå med åbning opad
+  const bt=P.bt,zb=bt-0.8,cz=bt+ro-0.8,yc0=0,yN=(N-1)*pitch,scr=P.mount==='screw',two=scr&&P.nscrew===2;
+  const tab=scr?P.shd+6:2;
+  const y0=-ro-tab,y1=yN+ro+(two?tab:scr?0:2);
+  const Rb=Math.min(3,w/2-0.5);
+  const base=rr(w,y1-y0,Rb,6).map(([x,y])=>[x,y+(y0+y1)/2]);
+  const feats=scr?screwFeats(0,-ro-tab/2,P.sd,P.shd,bt,'s'):[];
+  if(two)feats.push(...screwFeats(0,yN+ro+tab/2,P.sd,P.shd,bt,'s2'));
+  layered(o,base,feats,0,bt,true);
+  for(let k=0;k<N;k++){const cy=yc0+k*pitch;
+    const ao=Math.asin(Math.min(0.95,ow/2/ro)),ai=Math.asin(Math.min(0.95,ow/2/ri)),p=[];
+    for(let j=0;j<=16;j++){const a=Math.PI/2+ao+(Math.PI/2-ao)*j/16;p.push([cy+ro*Math.cos(a),cz+ro*Math.sin(a)]);}
+    p.push([cy-ro,zb],[cy+ro,zb]);
+    for(let j=0;j<=16;j++){const a=(Math.PI/2-ao)*j/16;p.push([cy+ro*Math.cos(a),cz+ro*Math.sin(a)]);}
+    for(let j=0;j<=32;j++){const a=Math.PI/2+2*Math.PI-ai-(2*Math.PI-2*ai)*j/32;p.push([cy+ri*Math.cos(a),cz+ri*Math.sin(a)]);}
+    extrude(o,p,[],-w/2,w/2,MAP_X);
+  }
+  return {tris:o,view:o,warn,dims:[w,y1-y0,cz+ro]};
+}
+
+// ================= INDSATS (USB, SD …) =================
+function buildInsert(P){
+  const warn=[],o=[],W=P.W,D=P.D,H=P.H,R=Math.max(0,Math.min(P.R,W/2-1,D/2-1,3.4*(P.edge-1.2)-0.1));
+  const sw=P.sw,st=P.stk,gx=P.gx,gy=P.gy,e=P.edge;
+  const cols=Math.max(0,Math.floor((W-2*e+gx)/(sw+gx))),rows=Math.max(0,Math.floor((D-2*e+gy)/(st+gy)));
+  const depth=Math.min(P.sd,H-P.fb);
+  if(depth<P.sd-0.01)warn.push('Indsatsen er lavere end slidsdybden – slidserne er gjort lavere.');
+  const out=rr(W,D,R,8);
+  if(!cols||!rows){warn.push('Der er ikke plads til nogen slidser – gør indsatsen større.');prism(o,out,0,H);return {tris:o,warn,count:0,cols,rows};}
+  const gw=cols*sw+(cols-1)*gx,gd=rows*st+(rows-1)*gy;
+  const x0=-gw/2-1.2,x1=gw/2+1.2,y0=-gd/2-1.2,y1=gd/2+1.2;
+  prism(o,out,0,H-depth+0.01);
+  // ring mellem afrundet kant og gitterets rektangel
+  const inn=out.map(([px,py])=>{let tx=Infinity;
+    if(Math.abs(px)>1e-9)tx=Math.min(tx,(px>0?x1:-x0)/Math.abs(px));
+    if(Math.abs(py)>1e-9)tx=Math.min(tx,(py>0?y1:-y0)/Math.abs(py));return [px*tx,py*tx];});
+  tube(o,out,inn,H-depth,H);
+  // gitteret som kasser uden om slidserne
+  const z0=H-depth,ys=[];for(let j=0;j<rows;j++){const a=-gd/2+j*(st+gy);ys.push([a,a+st]);}
+  let prev=y0;
+  for(const [a,b] of ys){box(o,x0,x1,prev,a,z0,H);
+    let px=x0;for(let i=0;i<cols;i++){const c=-gw/2+i*(sw+gx);box(o,px,c,a,b,z0,H);px=c+sw;}box(o,px,x1,a,b,z0,H);prev=b;}
+  box(o,x0,x1,prev,y1,z0,H);
+  return {tris:o,warn,count:cols*rows,cols,rows,depth};
+}
+
+/*GEOM-END*/
+// ---------- ZIP (uden komprimering, flere filer) ----------
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+function zipFiles(files){
+  const parts=[],cds=[];let off=0;
+  for(const f of files){
+    const nb=new TextEncoder().encode(f.name),data=f.data,crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(12,0x21,true);lh.setUint32(14,crc,true);
+    lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nb.length,true);
+    const cd=new DataView(new ArrayBuffer(46));
+    cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(14,0x21,true);cd.setUint32(16,crc,true);
+    cd.setUint32(20,data.length,true);cd.setUint32(24,data.length,true);cd.setUint16(28,nb.length,true);cd.setUint32(42,off,true);
+    parts.push(lh,nb,data);cds.push(cd,nb);off+=30+nb.length+data.length;
+  }
+  const cdSize=cds.reduce((a,b)=>a+b.byteLength,0);
+  const e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cdSize,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cds,e]);
+}
+const f1=v=>(+v).toFixed(1).replace('.',',');
+const safe=s=>s.replace(/[Ææ]/g,'ae').replace(/[Øø]/g,'oe').replace(/[Åå]/g,'aa').normalize('NFKD').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,30)||'x';
+
+// ---------- Tekst → bitmap ----------
+const tbCache=new Map();
+function textBitmap(txt,size,maxW,maxH){
+  txt=(txt||'').trim();if(!txt||maxW<4||maxH<2)return null;
+  const key=[txt,size,maxW.toFixed(2),maxH.toFixed(2)].join('|');if(tbCache.has(key))return tbCache.get(key);
+  const res=0.2;let fpx=size/res/0.72;
+  const cv=document.createElement('canvas'),c=cv.getContext('2d');
+  const font=px=>`700 ${px}px system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif`;
+  c.font=font(fpx);let w=c.measureText(txt).width;
+  if(w*res>maxW){fpx*=maxW/(w*res);c.font=font(fpx);w=c.measureText(txt).width;}
+  if(fpx*1.25*res>maxH){fpx=maxH/(1.25*res);c.font=font(fpx);w=c.measureText(txt).width;}
+  const cols=Math.max(4,Math.ceil(w)+6),rows=Math.max(4,Math.ceil(fpx*1.25)+4);
+  let out=null;
+  if(fpx*res*0.72>=1.5&&cols*res<=maxW+3){
+    cv.width=cols;cv.height=rows;c.font=font(fpx);c.textAlign='center';c.textBaseline='middle';c.fillStyle='#000';
+    c.fillText(txt,cols/2,rows/2+fpx*0.04);
+    const img=c.getImageData(0,0,cols,rows).data,data=new Uint8Array(cols*rows);
+    for(let i=0;i<cols*rows;i++)data[i]=img[i*4+3]>110?1:0;
+    out={cols,rows,res,data};
+  }
+  tbCache.set(key,out);return out;
+}
+
+// ---------- Fælles indstillinger ----------
+const PROF_L={std:'Standard (0,4 mm dyse)',precise:'Præcis (Bambu, Prusa MK4/Core)',budget:'Ældre/budget (Ender 3 m.fl.)',n06:'0,6 mm dyse'};
+const profDef=vals=>({k:'prof',l:'Printerprofil',type:'select',opts:Object.entries(PROF_L).concat([['custom','Egne værdier']]),v:'std',noGeom:true,profVals:vals});
+const roomDefs=()=>[
+ {k:'tpl',l:'Skabelon',type:'select',opts:[['','Vælg skabelon …'],['empty','Ingen skillevægge'],['six','6 lige store (3×2)'],['bigsmall','1 stort + 4 små'],['twelve','12 små (4×3)'],['mixed','Sortering (blandet)'],['long','3 lange rum']],v:'',noGeom:true},
+ {k:'divMode',l:'Retning',type:'select',opts:[['cols','Kolonner'],['rows','Rækker']],v:'cols'},
+ {note:'Kolonner: de lodrette vægge går hele vejen, og hver kolonne deles for sig. Rækker: omvendt.'},
+ {k:'dx',l:P=>P.divMode==='rows'?'Antal gennemgående vandrette vægge':'Antal gennemgående lodrette vægge',min:0,max:8,st:1,v:2},
+ {k:'dt',l:'Skillevægstykkelse',min:0.8,max:4,st:0.1,v:1.2},
+ {k:'divH',l:'Skillevæggenes højde (%)',min:20,max:100,st:5,v:100},
+ {k:'scoop',l:'Fingergreb (radius, 0 = fra)',min:0,max:20,st:0.5,v:0},
+];
+const TPL={
+  empty:{divMode:'cols',xs:[],cols:[[]]},
+  six:{divMode:'cols',xs:[1/3,2/3],cols:[[0.5],[0.5],[0.5]]},
+  bigsmall:{divMode:'cols',xs:[0.5],cols:[[],[0.25,0.5,0.75]]},
+  twelve:{divMode:'cols',xs:[0.25,0.5,0.75],cols:[[1/3,2/3],[1/3,2/3],[1/3,2/3],[1/3,2/3]]},
+  mixed:{divMode:'cols',xs:[0.2,0.42,0.58],cols:[[0.3,0.55,0.8],[0.2,0.4,0.6,0.8],[],[0.5]]},
+  long:{divMode:'rows',xs:[1/3,2/3],cols:[[],[0.5],[]]},
+};
+
+// ---------- Værktøjer ----------
+const TOOLS=[];
+// ÆSKE
+TOOLS.push({id:'aeske',name:'Æske',dl:'Download STL',hasPlan:true,
+ init:{xs:[1/3,2/3],cols:[[1/3,2/3],[0.5],[]]},
+ defs:[
+  {sec:'Mål'},
+  {k:'dimMode',l:'Målene angiver',type:'select',opts:[['outer','Udvendige mål'],['inner','Indvendige mål (rummet)']],v:'outer'},
+  {k:'W',l:P=>P.dimMode==='inner'?'Indvendig bredde':'Bredde',min:15,max:250,st:1,v:80},
+  {k:'D',l:P=>P.dimMode==='inner'?'Indvendig dybde':'Dybde',min:15,max:250,st:1,v:60},
+  {k:'Hb',l:P=>P.dimMode==='inner'?'Indvendig højde (bund)':'Højde – bund',min:6,max:150,st:1,v:30},
+  {k:'Hl',l:'Højde – låg',min:4,max:100,st:1,v:14},
+  {k:'R',l:'Hjørneradius',min:0,max:30,st:0.5,v:5},
+  {sec:'Printer'},
+  profDef({std:{hc:0.4,fit:0.3},precise:{hc:0.3,fit:0.25},budget:{hc:0.5,fit:0.4},n06:{hc:0.5,fit:0.4,t:2.4,lipT:1.5,dt:1.6}}),
+  {note:'Profilen indstiller frigang i hængsel og kant. Du kan finjustere nedenfor.'},
+  {sec:'Vægge'},
+  {k:'t',l:'Vægtykkelse',min:1.2,max:6,st:0.1,v:2},
+  {k:'fb',l:'Bund-/toptykkelse',min:0.8,max:5,st:0.1,v:1.6},
+  {sec:'Låg'},
+  {k:'lip',l:'Indvendig kant, der holder låget på plads',type:'check',v:true},
+  {k:'lipH',l:'Kanthøjde',min:1,max:10,st:0.5,v:3,show:P=>P.lip},
+  {k:'lipT',l:'Kanttykkelse',min:0.8,max:3,st:0.1,v:1.2,show:P=>P.lip},
+  {k:'fit',l:'Frigang ved kant',min:0.1,max:0.8,st:0.05,v:0.3,show:P=>P.lip,prof:true},
+  {k:'latch',l:'Klik-lås foran',type:'check',v:true,show:P=>P.lip},
+  {k:'latchS',l:'Låsestyrke',min:0.1,max:0.8,st:0.05,v:0.35,show:P=>P.lip&&P.latch},
+  {k:'grip',l:'Greb foran på låget',type:'check',v:true},
+  {sec:'Tekst'},
+  {k:'text',l:'Tekst',type:'text',v:''},
+  {k:'textPos',l:'Placering',type:'select',opts:[['top','På låget'],['front','På forsiden'],['both','Begge steder']],v:'both',show:P=>!!P.text.trim()},
+  {k:'textSize',l:'Teksthøjde',min:3,max:30,st:0.5,v:8,show:P=>!!P.text.trim()},
+  {k:'textDepth',l:'Dybde',min:0.4,max:1.2,st:0.1,v:0.6,show:P=>!!P.text.trim()},
+  {note:'Teksten bliver fordybet. På forsiden kan den ses, når æskerne står stablet.'},
+  {sec:'Stabling (magneter)'},
+  {k:'mag',l:'Huller til magneter i hjørnerne',type:'check',v:false},
+  {k:'magD',l:'Magnet-diameter',min:3,max:12,st:0.5,v:6,show:P=>P.mag},
+  {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mag},
+  {note:'Hullerne sidder under bunden og i toppen af låget, så æskerne holder sammen, når de stables. De holder ikke låget lukket – det gør klik-låsen.',show:P=>P.mag},
+  {sec:'Hængsel (print-in-place)'},
+  {k:'n',l:'Antal led',type:'select',opts:[[3,'3'],[5,'5'],[7,'7'],[9,'9']],v:5,num:true},
+  {k:'kr',l:'Ledradius',min:2.5,max:8,st:0.25,v:4},
+  {k:'hc',l:'Frigang i hængsel',min:0.2,max:0.8,st:0.05,v:0.4,prof:true},
+  {sec:'Rum'},...roomDefs()],
+ onChange(T,k,v,old){if(k==='dimMode'&&v!==old){const P=T.P;const E=eff(Object.assign({},P,{dimMode:old}));
+   if(v==='inner'){T.setCtl('W',+(E.W-2*P.t).toFixed(1));T.setCtl('D',+(E.D-2*P.t).toFixed(1));T.setCtl('Hb',+(E.Hb-E.fbB).toFixed(1));}
+   else{T.setCtl('W',+E.W.toFixed(1));T.setCtl('D',+E.D.toFixed(1));T.setCtl('Hb',+E.Hb.toFixed(1));}}},
+ interior(P){const E=eff(P);return {iw:E.W-2*E.t,id:E.D-2*E.t,ir:Math.max(0,E.R-E.t)};},
+ make(P){
+   const E0=eff(Object.assign({},P,{tb:null}));const iw=E0.W-2*E0.t,id=E0.D-2*E0.t;
+   let maxW=iw-4;if(P.mag){const mc=magCenters(E0);maxW=Math.min(maxW,iw-2*(mc.m+E0.mr+0.8));}
+   const onTop=P.textPos!=='front',onFront=P.textPos!=='top';
+   P.tb=onTop?textBitmap(P.text,P.textSize,maxW,id-4):null;
+   const R0=Math.max(0,Math.min(P.R,E0.W/2-0.5,E0.D/2-0.5));
+   P.tbF=onFront&&P.textDepth<=P.t-0.6?textBitmap(P.text,P.textSize,E0.W-2*R0-6,E0.Hb-8):null;
+   const m=build(P);
+   if(P.text.trim()&&onTop&&!P.tb)m.warn.push('Der er ikke plads til teksten på låget.');
+   if(P.text.trim()&&onFront&&P.textDepth>P.t-0.6)m.warn.push('Væggen er for tynd til tekst på forsiden – øg vægtykkelsen eller mindsk tekstdybden.');
+   else if(P.text.trim()&&onFront&&!P.tbF)m.warn.push('Der er ikke plads til teksten på forsiden.');
+   return m;},
+ setup(m,S){S.mesh(m.B,0x2b7a78);const pv=S.pivot(0,m.ay,m.za,[0,m.ay,m.za]);S.mesh(m.L,0xd9622b,pv);S.state.pv=pv;},
+ hud:{label:'Åbning',min:0,max:180,v:110,unit:'°',btn:'Printposition',btnV:180,apply(S,v){S.state.pv.rotation.x=-v*Math.PI/180;}},
+ files(m,P){const E=m.E;return [{name:`haengslet-aeske_${Math.round(E.W)}x${Math.round(E.D)}x${Math.round(m.H)}mm`,tris:printTris(m)}];},
+ extra:{label:'Download testhængsel (lille testprint)',files(P){return [{name:`testhaengsel_frigang-${String(P.hc).replace('.',',')}mm`,tris:printTris(build(hingeTestParams(P)))}];}},
+ stats(m,P){const E=m.E;return [['Udvendigt (lukket)',m.outer.map(f1).join(' × ')],['Indvendigt rum (bund)',m.inner.map(f1).join(' × ')],
+   ...((E.fbB>P.fb+1e-6||E.fbL>P.fb+1e-6)?[[`Bund / top (øget pga. ${P.mag?'magneter':'tekst'})`,f1(E.fbB)+' / '+f1(E.fbL)]]:[]),
+   ['Fodaftryk på printpladen',f1(E.W)+' × '+f1(m.printLen)],['Rum',m.cells.length]];},
+ tips:P=>['Printes som den ligger ved 180°: bund og låg fladt på pladen, hængslet imellem. Ingen support nødvendig.','Print testhængslet først for at finde den rigtige frigang til din printer.','Efter print: bræk forsigtigt hængslet løs ved at vippe låget et par gange.',...(P.mag?['Magneter: lim dem i med modsat pol opad i bund og låg, så æskerne kan stables.']:[])],
+});
+// SKUFFER
+TOOLS.push({id:'skuffer',name:'Skuffer',dl:'Download STL-filer (ZIP)',hasPlan:true,
+ init:{xs:[],cols:[[]]},
+ defs:[
+  {sec:'Skab (udvendige mål)'},
+  {k:'W',l:'Bredde',min:40,max:300,st:1,v:120},
+  {k:'D',l:'Dybde',min:30,max:300,st:1,v:100},
+  {k:'H',l:'Højde',min:20,max:300,st:1,v:100},
+  {k:'n',l:'Antal skuffer',type:'select',opts:[1,2,3,4,5,6].map(v=>[v,String(v)]),v:3,num:true},
+  {k:'t',l:'Vægtykkelse',min:1.2,max:5,st:0.1,v:2},
+  {k:'st',l:'Hyldetykkelse',min:1,max:4,st:0.1,v:1.6},
+  {sec:'Printer'},
+  profDef({std:{c:0.4},precise:{c:0.3},budget:{c:0.5},n06:{c:0.5,t:2.4,dwt:1.8,dt:1.6}}),
+  {k:'c',l:'Frigang mellem skuffe og skab',min:0.2,max:1,st:0.05,v:0.4,prof:true},
+  {sec:'Skuffer'},
+  {k:'handle',l:'Greb',type:'select',opts:[['notch','Fingerhul'],['tab','Kant (lip)'],['bar','Håndtag'],['none','Intet']],v:'notch'},
+  {k:'nw',l:'Fingerhullets bredde',min:12,max:70,st:1,v:30,show:P=>P.handle==='notch'},
+  {k:'nd',l:'Fingerhullets dybde',min:4,max:30,st:0.5,v:12,show:P=>P.handle==='notch'},
+  {k:'dwt',l:'Skuffens vægtykkelse',min:1.2,max:3,st:0.1,v:1.6},
+  {k:'ft',l:'Forpladens tykkelse',min:1.6,max:5,st:0.1,v:2.4},
+  {k:'dfb',l:'Skuffens bundtykkelse',min:0.8,max:3,st:0.1,v:1.2},
+  {k:'rd',l:'Hjørneradius (bagest)',min:0,max:10,st:0.5,v:3},
+  {k:'stop',l:'Stop, så skuffen ikke falder ud',type:'check',v:true},
+  {sec:'Montering'},
+  {k:'skadis',l:'Til IKEA SKÅDIS',type:'check',v:false},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.skadis},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.skadis},
+  {note:'Skabet får faste kroge øverst på bagsiden. Det laves uden hylder – skufferne kører på skinner i sidevæggene – og printes på hovedet, så intet kræver support.',show:P=>P.skadis},
+  {sec:'Etiketter'},
+  {k:'labels',l:'Tekst pr. skuffe (adskil med komma, øverste først)',type:'text',v:'',max:200,ph:'fx SKRUER, SØM, BITS'},
+  {k:'textSize',l:'Teksthøjde',min:3,max:20,st:0.5,v:7,show:P=>!!P.labels.trim()},
+  {k:'textDepth',l:'Dybde',min:0.4,max:1.2,st:0.1,v:0.6,show:P=>!!P.labels.trim()},
+  {sec:'Rum i skufferne'},
+  {note:'Opdelingen gælder alle skuffer.'},...roomDefs().map(d=>d.k==='dx'?{...d,v:0}:d)],
+ interior(P){const C=drawerCalc(P);return {iw:C.iw,id:C.id,ir:C.ir};},
+ make(P){
+   const C=drawerCalc(P);const lab=P.labels.split(',').map(s=>s.trim());
+   // øverste skuffe først i teksten; skuffe k=0 er nederst
+   P.tbs=[];for(let k=0;k<C.n;k++){const s=lab[C.n-1-k]||'';P.tbs.push(s?textBitmap(s,P.textSize,C.dw-6,C.dh-C.nd-4):null);}
+   const m=buildDrawers(P);
+   if(lab.some(Boolean)&&P.tbs.some((t,k)=>!t&&lab[C.n-1-k]))m.warn.push('Der er ikke plads til al teksten på forpladerne.');
+   return m;},
+ setup(m,S,P){S.mesh(m.cab,0x2b7a78);if(P.skadis){const o=[];box(o,-P.W/2-40,P.W/2+40,P.D/2,P.D/2+P.Tb,-40,P.H+20);S.mesh(o,0xe8e2d6,null,true);}const C=m.C;S.state.dr=m.drawers.map((d,k)=>{const g=S.pivot(0,-P.D/2+C.dd/2,C.z[k]);S.mesh(d.tris,0xd9622b,g);return g;});S.state.base=-P.D/2+C.dd/2;S.state.dd=C.dd;},
+ hud:{label:'Træk ud',min:0,max:100,v:35,unit:'%',apply(S,v){for(const g of S.state.dr)g.position.y=S.state.base-v/100*(S.state.dd-6);}},
+ files(m,P){const C=m.C,lab=P.labels.split(',').map(s=>s.trim()),out=[{name:P.skadis?'skab_skadis':'skab',tris:cabinetPrint(m.cab,P,C)}];
+   const keys=[...new Set(m.drawers.map(d=>d.key))];
+   if(keys.length===1)out.push({name:`skuffe_print-${C.n}-stk`,tris:m.drawers[0].tris});
+   else m.drawers.forEach((d,k)=>{const s=lab[C.n-1-k]||'';out.push({name:`skuffe-${C.n-k}${s?'-'+safe(s):''}`,tris:d.tris});});
+   return out;},
+ stats(m,P){const C=m.C;return [['Skab (udvendigt)',[P.W,P.D,P.H].map(f1).join(' × ')],['Skuffe (udvendigt)',[C.dw,C.dd,C.dh].map(f1).join(' × ')],
+   ['Indvendigt pr. skuffe',[C.iw,C.id,C.dh-P.dfb].map(f1).join(' × ')],['Rum pr. skuffe',m.drawers[0]?m.drawers[0].cells.length:0],...(P.skadis?[['Montering','SKÅDIS, faste kroge']]:[])];},
+ tips:P=>[P.skadis?'Skabet printes på hovedet (toppen på pladen), som det ligger i filen – krogene og rillerne kan så printes uden support.':'Skabet printes liggende på ryggen, så hylderne står lodret – ingen support.','Skufferne printes stående med åbningen opad.',...(P.skadis?['Hæng skabet op: vip krogene ind i slidserne og lad det glide ned, så tapperne går i slidserne nedenunder.']:[]),...(P.stop?['Første gang skuffen sættes i, skal den skubbes forbi stoppet med et lille tryk.']:[]),'Sidder skufferne for stramt, så øg frigangen.'],
+});
+// HOLDER
+const HOLDER_PRESETS={
+  tb:{holes:[{s:'c',a:14,b:3,n:4}],sor:'along',tray:true},
+  tbp:{holes:[{s:'c',a:14,b:3,n:4},{s:'c',a:34,b:3,n:1}],sor:'along',tray:true},
+  tools:{holes:[{s:'c',a:10,b:3,n:6}],sor:'along',tray:true},
+  pens:{holes:[{s:'c',a:9,b:3,n:8}],sor:'along',tray:true},
+  knives:{holes:[{s:'s',a:42,b:3.5,n:3},{s:'s',a:28,b:3,n:2}],sor:'out',tray:false,wg:4,wh:50},
+  mixed:{holes:[{s:'c',a:22,b:3,n:1},{s:'c',a:12,b:3,n:3},{s:'s',a:30,b:4,n:1}],sor:'along',tray:true},
+};
+TOOLS.push({id:'holder',name:'Holder',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Type'},
+  {k:'mode',l:'Holder',type:'select',opts:[['wall','Til væg / SKÅDIS'],['block','Stående blok']],v:'wall'},
+  {k:'preset',l:'Forslag',type:'select',opts:[['','Vælg forslag …'],['tb','4 tandbørster'],['tbp','4 tandbørster + tandpasta'],['knives','Knive (5 slidser)'],['tools','6 skruetrækkere'],['pens','8 pensler/kuglepenne'],['mixed','Blandede huller']],v:'',noGeom:true},
+  {sec:'Huller'},
+  {k:'holes',l:'Hvert hul eller hver gruppe af ens huller',type:'holes',v:[{s:'c',a:14,b:3,n:4}]},
+  {k:'sor',l:'Slidser vender',type:'select',opts:[['along','Langs væggen'],['out','Ud fra væggen']],v:'along',show:P=>P.holes.some(h=>h.s==='s')},
+  {k:'taper',l:'Tilspidsning af huller (°)',min:0,max:30,st:1,v:0},
+  {note:'Hullerne bliver bredere foroven og smalner ind til den angivne størrelse i bunden.',show:P=>P.taper>0},
+  {k:'hgap',l:'Afstand mellem huller',min:2,max:30,st:0.5,v:5},
+  {k:'hm',l:'Kant omkring huller',min:3,max:20,st:0.5,v:6},
+  {k:'R',l:'Hjørneradius',min:0,max:15,st:0.5,v:4},
+  {sec:'Vægholder',show:P=>P.mode==='wall'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruer'],['tape','Dobbeltklæbende tape']],v:'skadis',show:P=>P.mode==='wall'},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mode==='wall'&&P.mount==='skadis'},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mode==='wall'&&P.mount==='skadis'},
+  {note:'Krogene sidder fast øverst på bagpladen, med en krog eller tap længere nede, når der er plads. Holderen printes på hovedet, så krogene ligger på printpladen.',show:P=>P.mode==='wall'&&P.mount==='skadis'},
+  {k:'wh',l:'Bagpladens højde',min:20,max:200,st:1,v:80,show:P=>P.mode==='wall'},
+  {k:'wt',l:'Bagpladens tykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.mode==='wall'},
+  {k:'st',l:'Hyldetykkelse',min:2,max:8,st:0.1,v:4,show:P=>P.mode==='wall'},
+  {note:'Gælder hylden, sidevæggene og støtterne – bakken og bagpladen har deres egne indstillinger.',show:P=>P.mode==='wall'},
+  {k:'wg',l:'Afstand fra væg til huller',min:2,max:40,st:0.5,v:6,show:P=>P.mode==='wall'},
+  {k:'tray',l:'Bundbakke under hullerne',type:'check',v:true,show:P=>P.mode==='wall'},
+  {note:'Med SKÅDIS bliver bakken en løs drypbakke, der skubbes ind på skinner – nem at tage ud og skylle.',show:P=>P.mode==='wall'&&P.mount==='skadis'&&P.tray},
+  {k:'trayT',l:'Bakkens bundtykkelse',min:1.2,max:6,st:0.1,v:2,show:P=>P.mode==='wall'&&P.tray},
+  {k:'lip',l:'Bakkens kant (højde over bunden)',min:2,max:20,st:0.5,v:6,show:P=>P.mode==='wall'&&P.tray},
+  {k:'sd',l:'Skruediameter',min:2.5,max:6,st:0.5,v:4,show:P=>P.mode==='wall'&&P.mount==='screw'},
+  {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mode==='wall'&&P.mount==='screw'},
+  {sec:'Stående blok',show:P=>P.mode==='block'},
+  {k:'bh',l:'Højde',min:15,max:250,st:1,v:60,show:P=>P.mode==='block'},
+  {k:'bfb',l:'Bundtykkelse',min:1,max:20,st:0.5,v:3,show:P=>P.mode==='block'},
+  {k:'drain',l:'Drænhul i bunden af hvert hul',type:'check',v:false,show:P=>P.mode==='block'},
+ ],
+ onChange(T,k,v){if(k==='preset'){const p=HOLDER_PRESETS[v];
+   if(p){if(T.P.mode!=='wall')T.setCtl('mode','wall');for(const [kk,vv] of Object.entries(p))T.setCtl(kk,kk==='holes'?vv.map(h=>({...h})):vv);}T.setCtl('preset','');}},
+ make(P){return buildHolder(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);if(m.trayView)S.mesh(m.trayView,0xd9622b);if(m.skadis){const W=m.dims[0],o=[];box(o,-W/2-40,W/2+40,0,P.Tb,-40,m.dims[2]+20);S.mesh(o,0xe8e2d6,null,true);}},
+ files(m,P){const n=m.count,base=`holder_${P.mode==='wall'?'vaeg':'staaende'}_${n}-huller`;
+   return [{name:base+(m.skadis?'_skadis':''),tris:m.print},...(m.trayPart?[{name:'drypbakke',tris:m.trayPart}]:[])];},
+ stats(m,P){return [['Mål (B × D × H)',m.dims.map(f1).join(' × ')],['Huller',m.count],...(m.skadis?[['Montering','SKÅDIS, faste kroge']]:[]),...(m.trayPart?[['Drypbakke','løs, printes for sig']]:[])];},
+ tips:P=>P.mode==='wall'?[...(P.mount==='skadis'?[]:['Printes liggende på bagpladen – hylder og bakke står lodret, så der skal ingen support til.']),
+   ...(P.mount==='skadis'?['Med SKÅDIS printes holderen på hovedet (toppen på pladen), som den ligger i filen – så kan krogene printes uden support.','Hæng den op: vip krogene ind i slidserne og lad holderen glide ned, så tappen går i slidsen nedenunder.',...(P.tray?['Drypbakken printes for sig og skubbes ind forfra.']:[])]:
+   P.mount==='screw'?['Skruehullerne er forsænkede til undersænkhoveder.']:['Brug kraftig dobbeltklæbende monteringstape.']),
+   ...(P.holes.some(h=>h.s==='s')?['Slidser til knive: mål bladets bredde og tykkelse lige under grebet, og læg 1–2 mm til.']:[])]
+   :['Printes stående som den er.',...(P.drain?['Drænhullerne lader vand løbe ud – stil holderen på en lille bakke.']:[])],
+});
+// KABEL
+TOOLS.push({id:'kabel',name:'Kabel',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Type'},
+  {k:'ctype',l:'Clips',type:'select',opts:[['desk','Til bordkanten'],['wall','Til væggen']],v:'desk'},
+  {sec:'Kabler'},
+  {k:'cn',l:'Antal kabler',min:1,max:8,st:1,v:3},
+  {k:'cd',l:'Kabeldiameter',min:2,max:20,st:0.5,v:6},
+  {k:'co',l:'Åbning (andel af kabeldiameter)',min:0.5,max:0.95,st:0.05,v:0.7},
+  {note:'Mindre åbning = kablet sidder fastere, men er sværere at klikke i.'},
+  {k:'cw',l:'Vægtykkelse',min:1.2,max:3,st:0.1,v:1.6},
+  {k:'w',l:'Clipsens bredde',min:6,max:40,st:1,v:12},
+  {sec:'Bordkant',show:P=>P.ctype==='desk'},
+  {k:'T',l:'Bordpladens tykkelse',min:8,max:60,st:0.5,v:20,show:P=>P.ctype==='desk'},
+  {k:'place',l:'Kablerne sidder',type:'select',opts:[['front','Foran på kanten'],['under','Under bordet']],v:'front',show:P=>P.ctype==='desk'},
+  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.ctype==='desk'},
+  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.ctype==='desk'},
+  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.ctype==='desk'},
+  {sec:'Væg',show:P=>P.ctype==='wall'},
+  {k:'bt',l:P=>P.mount==='skadis'?'Bagstykkets tykkelse':'Bundpladens tykkelse',min:1.6,max:5,st:0.1,v:2.4,show:P=>P.ctype==='wall'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruer'],['tape','Dobbeltklæbende tape']],v:'screw',show:P=>P.ctype==='wall'},
+  {k:'nscrew',l:'Antal skruehuller',type:'select',opts:[[1,'1 (i den ene ende)'],[2,'2 (i begge ender)']],v:1,num:true,show:P=>P.ctype==='wall'&&P.mount==='screw'},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.ctype==='wall'&&P.mount==='skadis'},
+  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'center',show:P=>P.ctype==='wall'&&P.mount==='skadis'},
+  {note:'Med krogen i midten svæver den over printpladen – slå support til i slicer (kun fra printpladen).',show:P=>P.ctype==='wall'&&P.mount==='skadis'&&P.hookPos==='center'},
+  {k:'skLow',l:'Ekstra krog længere nede',type:'select',opts:[['none','Ingen (lille clips)'],['hook','Krog'],['stub','Tap']],v:'none',show:P=>P.ctype==='wall'&&P.mount==='skadis'},
+  {note:'SKÅDIS-clipsen er én flad profil med fast krog, der printes liggende, så den er stærk. Vælg en ekstra krog længere nede, hvis clipsen skal sidde helt fast – så bliver den højere.',show:P=>P.ctype==='wall'&&P.mount==='skadis'},
+  {k:'sd',l:'Skruediameter',min:2.5,max:5,st:0.5,v:3.5,show:P=>P.ctype==='wall'&&P.mount==='screw'},
+  {k:'shd',l:'Skruehovedets diameter',min:5,max:10,st:0.5,v:7,show:P=>P.ctype==='wall'&&P.mount==='screw'},
+ ],
+ make(P){return buildCable(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);if(m.skadis){const o=[];box(o,-40,40,0,m.skadis.Tb,-40,m.skadis.top+30);S.mesh(o,0xe8e2d6,null,true);}if(m.ghost){const g=m.ghost,o=[];box(o,g.x0,g.x1,g.y0,g.y1,g.z0,g.z1);S.mesh(o,0xc9bfae,null,true);}},
+ files(m,P){return [{name:`kabelclips_${P.ctype==='desk'?'bordkant':P.mount==='skadis'?'skadis':'vaeg'}_${P.cn}x${String(P.cd).replace('.',',')}mm`,tris:m.tris}];},
+ stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],['Kabler',`${P.cn} × Ø${f1(P.cd)} mm`]];},
+ tips:P=>[P.ctype==='desk'?'Printes liggende, så profilen ligger fladt – stærkest og ingen support.':P.mount==='skadis'?(P.hookPos==='center'?'Printes liggende. Krogen i midten skal have support under sig (kun fra printpladen).':'Printes liggende, så profilen ligger fladt – stærkest og ingen support.'):'Printes med bundpladen nedad.','Skal du bruge flere, så kopiér dem i slicerprogrammet.',P.ctype==='desk'?'Sidder den løst, så øg klemkraften eller mål bordpladen igen.':P.mount==='skadis'?'Kablerne klikkes ind i kanalerne forfra.':'Kablerne klikkes ned i kanalerne fra oven.'],
+});
+
+// INDSATS
+const SLOTS={usba:{l:'USB-A (dongle/USB-stik)',sw:12.6,stk:4.9,sd:12,gx:5,gy:10},usbc:{l:'USB-C',sw:9,stk:3.6,sd:7,gx:5,gy:9},
+  micro:{l:'Micro-USB',sw:8.2,stk:3.2,sd:6,gx:5,gy:9},sd:{l:'SD-kort',sw:24.6,stk:2.6,sd:18,gx:4,gy:4},microsd:{l:'microSD-kort',sw:11.4,stk:1.4,sd:8,gx:3,gy:3}};
+TOOLS.push({id:'indsats',name:'Indsats',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Slidser'},
+  {k:'kind',l:'Til',type:'select',opts:Object.entries(SLOTS).map(([k,v])=>[k,v.l]).concat([['custom','Egne mål']]),v:'usba'},
+  {k:'sw',l:'Slidsens længde',min:2,max:60,st:0.1,v:12.6,slot:true},
+  {k:'stk',l:'Slidsens bredde',min:0.8,max:20,st:0.1,v:4.9,slot:true},
+  {k:'sd',l:'Slidsens dybde',min:2,max:40,st:0.5,v:12,slot:true},
+  {k:'gx',l:'Afstand mellem slidser',min:1.5,max:30,st:0.5,v:5,slot:true},
+  {k:'gy',l:'Afstand mellem rækker',min:1.5,max:40,st:0.5,v:10,slot:true},
+  {note:'Afstanden mellem rækkerne skal give plads til selve donglen eller stikkets greb.'},
+  {sec:'Mål'},
+  {k:'fit',l:'Tilpas til',type:'select',opts:[['','Vælg …'],['skuffe','Skuffe fra Skuffer-fanen'],['aeske','Æske fra Æske-fanen']],v:'',noGeom:true},
+  {note:'Fylder hele skuffen/æsken. Har den skillevægge, så skriv målene på ét rum i stedet.'},
+  {k:'W',l:'Bredde',min:15,max:300,st:0.5,v:100},
+  {k:'D',l:'Dybde',min:10,max:300,st:0.5,v:80},
+  {k:'H',l:'Højde',min:3,max:60,st:0.5,v:14},
+  {k:'edge',l:'Kant',min:2,max:15,st:0.5,v:3},
+  {k:'R',l:'Hjørneradius',min:0,max:15,st:0.5,v:3},
+  {k:'fb',l:'Bundtykkelse',min:0.8,max:5,st:0.1,v:1.2},
+ ],
+ onChange(T,k,v){
+   if(k==='kind'&&SLOTS[v])for(const kk of ['sw','stk','sd','gx','gy'])T.setCtl(kk,SLOTS[v][kk]);
+   if(T.ctrls[k]&&T.ctrls[k].d.slot&&T.P.kind!=='custom')T.setCtl('kind','custom');
+   if(k==='fit'){let w,d,h;
+     if(v==='skuffe'){const P=TOOLS.find(t=>t.id==='skuffer').P,C=drawerCalc(P);w=C.iw-0.8;d=C.id-0.8;h=C.dh-P.dfb-1;}
+     if(v==='aeske'){const P=TOOLS.find(t=>t.id==='aeske').P,E=eff(Object.assign({},P,{tb:null}));w=E.W-2*E.t-0.8;d=E.D-2*E.t-0.8;h=E.Hb-E.fbB-(E.lip?E.lipH+E.fit:0)-0.5;}
+     if(w){const r=x=>Math.floor(x*2)/2;T.setCtl('W',r(w));T.setCtl('D',r(d));T.setCtl('H',Math.max(3,Math.min(60,r(Math.min(h,Math.max(T.P.sd+T.P.fb,T.P.H))))));}
+     T.setCtl('fit','');}},
+ make(P){return buildInsert(P);},
+ setup(m,S){S.mesh(m.tris,0x2b7a78);},
+ files(m,P){return [{name:`indsats_${P.kind}_${m.cols}x${m.rows}`,tris:m.tris}];},
+ stats(m,P){return [['Mål',[P.W,P.D,P.H].map(f1).join(' × ')],['Slidser',`${m.count} (${m.cols} × ${m.rows})`],['Slids',`${f1(P.sw)} × ${f1(P.stk)} × ${f1(m.depth||P.sd)} mm`]];},
+ tips:P=>['Printes som den ligger, med slidserne opad.','Sidder stikkene for stramt eller løst, så justér slidsens bredde med 0,1–0,2 mm.','Brug “Tilpas til” for at få den til at passe ned i en skuffe eller æske.'],
+});
+
+// ---------- Kontroller ----------
+const ctl=document.getElementById('controls');
+for(const T of TOOLS){
+  T.P=Object.assign({},JSON.parse(JSON.stringify(T.init)));T.ctrls={};T.hudV=T.hud?T.hud.v:0;
+  T.el=document.createElement('div');T.el.id='tool-'+T.id;T.el.style.display='none';ctl.appendChild(T.el);
+  T.setCtl=(k,v)=>{T.P[k]=v;if(T.ctrls[k])T.ctrls[k].set(v);};
+  T.secs=[];
+  for(const d of T.defs){
+    if(d.sec){const s=document.createElement('div');s.className='sec';s.textContent=d.sec;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
+    if(d.note){const s=document.createElement('div');s.className='note';s.textContent=d.note;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
+    T.P[d.k]=Array.isArray(d.v)?d.v.map(x=>({...x})):d.v;const r=document.createElement('div');r.className='row'+(d.type==='check'?' chk':'');r.dataset.k=d.k;
+    let set,labEl;
+    if(d.type==='check'){
+      r.innerHTML=`<label><input type="checkbox"> <span></span></label>`;const i=r.querySelector('input');labEl=r.querySelector('span');
+      i.checked=d.v;i.onchange=()=>change(T,d,i.checked);set=v=>{i.checked=v;};
+    }else if(d.type==='select'){
+      r.innerHTML=`<label><span></span><select>${d.opts.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label>`;
+      const s=r.querySelector('select');labEl=r.querySelector('span');s.value=d.v;s.onchange=()=>change(T,d,d.num?+s.value:s.value);set=v=>{s.value=v;};
+    }else if(d.type==='holes'){
+      r.innerHTML=`<label><span></span></label><div class="hl"></div><button class="addhole">+ Tilføj hul</button>`;
+      const hl=r.querySelector('.hl');labEl=r.querySelector('span');
+      const render=()=>{hl.innerHTML='<div class="hhead"><span>Form</span><span>Størrelse (mm)</span><span>Antal</span><span></span></div>';
+        T.P[d.k].forEach((h,i)=>{const row=document.createElement('div');row.className='hrow';
+          row.innerHTML=`<select><option value="c">Rund</option><option value="s">Slids</option></select><span class="sz"><input type="number" class="a" step="0.5" min="2" max="150"><i>×</i><input type="number" class="b" step="0.5" min="0.8" max="40"></span><input type="number" class="nn" step="1" min="1" max="20"><button class="del" title="Fjern">✕</button>`;
+          const [sel_,a,b,nn]=[row.querySelector('select'),row.querySelector('.a'),row.querySelector('.b'),row.querySelector('.nn')];
+          sel_.value=h.s;a.value=h.a;b.value=h.b;nn.value=h.n;
+          const vis=()=>{const sl=sel_.value==='s';b.style.display=row.querySelector('i').style.display=sl?'':'none';a.title=sl?'Længde':'Diameter';b.title='Bredde';};vis();
+          const upd=()=>{const H=T.P[d.k].map(x=>({...x}));const c=(v,lo,hi,df)=>{v=+v;return isFinite(v)&&v>0?Math.min(hi,Math.max(lo,v)):df;};
+            H[i]={s:sel_.value,a:c(a.value,2,150,h.a),b:c(b.value,0.8,40,h.b),n:Math.round(c(nn.value,1,20,h.n))};vis();change(T,d,H);};
+          sel_.onchange=upd;a.onchange=upd;b.onchange=upd;nn.onchange=upd;
+          row.querySelector('.del').onclick=()=>{const H=T.P[d.k].filter((_,j)=>j!==i);change(T,d,H);render();};
+          hl.appendChild(row);});};
+      r.querySelector('.addhole').onclick=()=>{const H=T.P[d.k].map(x=>({...x}));H.push({s:'c',a:14,b:3,n:1});change(T,d,H);render();};
+      T.P[d.k]=d.v.map(x=>({...x}));set=v=>{T.P[d.k]=v.map(x=>({...x}));render();};render();
+    }else if(d.type==='text'){
+      r.innerHTML=`<label><span></span></label><input type="text">`;const i=r.querySelector('input');labEl=r.querySelector('span');
+      i.maxLength=d.max||40;i.placeholder=d.ph||'fx SKRUER';i.oninput=()=>change(T,d,i.value);set=v=>{i.value=v;};
+    }else{
+      r.innerHTML=`<label><span></span><input type="number" min="${d.min}" max="${d.max}" step="${d.st}"></label><input type="range" min="${d.min}" max="${d.max}" step="${d.st}">`;
+      labEl=r.querySelector('span');const [num,rng]=r.querySelectorAll('input');num.value=rng.value=d.v;
+      rng.oninput=()=>{num.value=rng.value;change(T,d,+rng.value);};
+      num.onchange=()=>{const v=Math.min(d.max,Math.max(d.min,isFinite(+num.value)&&num.value!==''?+num.value:T.P[d.k]));num.value=rng.value=v;change(T,d,v);};
+      set=v=>{num.value=v;rng.value=v;};
+    }
+    labEl.textContent=typeof d.l==='function'?d.l(T.P):d.l;T.ctrls[d.k]={row:r,set,labEl,d};T.el.appendChild(r);
+  }
+}
+function change(T,d,v){
+  const old=T.P[d.k];
+  if(d.k==='prof'){T.P.prof=v;const pv=d.profVals[v];if(pv)for(const [k,val] of Object.entries(pv))T.setCtl(k,val);refresh();sched();return;}
+  if(d.k==='tpl'){applyTemplate(T,v);T.setCtl('tpl','');return;}
+  if(T.onChange)T.onChange(T,d.k,v,old);
+  if(d.k==='preset')return void(refresh(),sched());
+  T.P[d.k]=v;
+  if(d.prof&&T.P.prof!=='custom')T.setCtl('prof','custom');
+  if(d.k==='divMode')sel=null;
+  refresh();sched();
+}
+function refresh(){
+  const T=cur;
+  for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);}
+  for(const s of T.secs)s.el.style.display=(!s.d.show||s.d.show(T.P))?'':'none';
+  document.getElementById('tips').innerHTML=T.tips(T.P).map(t=>`<li>${t}</li>`).join('');
+}
+function applyTemplate(T,k){const t=TPL[k];if(!t)return;
+  T.setCtl('divMode',t.divMode);T.setCtl('dx',t.xs.length);T.P.xs=t.xs.slice();T.P.cols=t.cols.map(c=>c.slice());sel=null;selCol=0;refresh();sched();}
+
+// ---------- Skillevægge: plantegning ----------
+let sel=null,selCol=0;const TP=()=>cur.P;
+function syncDiv(){
+  const P=TP();
+  if(P.xs.length!==P.dx){
+    P.xs=Array.from({length:P.dx},(_,i)=>(i+1)/(P.dx+1));
+    const old=P.cols;P.cols=Array.from({length:P.dx+1},(_,c)=>old[c]?old[c].slice():[]);
+    sel=null;
+  }
+  while(P.cols.length<P.dx+1)P.cols.push([]);P.cols.length=P.dx+1;
+  selCol=Math.min(selCol,P.dx);
+}
+const plan=document.getElementById('plan'),pctx=plan.getContext('2d');
+let pm=null,DLc=null,IRc=0;
+const bandName=()=>TP().divMode==='rows'?'række':'kolonne';
+function planMap(){
+  const I=cur.interior(TP());DLc=divLayout2(TP(),I.iw,I.id);IRc=I.ir;const {iw,id}=I;const cw=plan.clientWidth||300;const pad=22;
+  const s=Math.max(0.1,Math.min((cw-2*pad)/iw,250/id));const ch=Math.round(id*s+2*pad);
+  return {s,pad,cw,ch,iw,id,ox:(cw-iw*s)/2,oy:pad};
+}
+const toPx=(x,y)=>[pm.ox+(x+pm.iw/2)*pm.s,pm.oy+(pm.id/2-y)*pm.s];
+const bandRange=(c)=>[c===0?-DLc.U/2:DLc.us[c-1],c===DLc.us.length?DLc.U/2:DLc.us[c]];
+function drawRect(c,r){const [a,b]=toPx(r.x0,r.y1),[e,f]=toPx(r.x1,r.y0);c.fillRect(a,b,e-a,f-b);}
+function drawPlan(){
+  if(!cur.hasPlan)return;
+  pm=planMap();const dpr=Math.min(2,devicePixelRatio||1);
+  plan.width=pm.cw*dpr;plan.height=pm.ch*dpr;plan.style.height=pm.ch+'px';
+  const c=pctx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,pm.cw,pm.ch);
+  const {iw,id,U,V,us,bands}=Object.assign({iw:pm.iw,id:pm.id},DLc),ir=Math.max(0,Math.min(IRc,iw/2,id/2)),dt=TP().dt;
+  c.font='10.5px system-ui,sans-serif';c.textAlign='center';c.fillStyle='#6d6a63';
+  c.fillText(cur.id==='skuffer'?'Bagside':'Bagside (hængsel)',pm.cw/2,13);c.fillText('Front',pm.cw/2,pm.ch-6);
+  const [x0,y0]=toPx(-iw/2,id/2);
+  const path=()=>{c.beginPath();if(c.roundRect)c.roundRect(x0,y0,iw*pm.s,id*pm.s,ir*pm.s);else c.rect(x0,y0,iw*pm.s,id*pm.s);};
+  c.save();path();c.fillStyle='#eef5fb';c.fill();c.clip();
+  {const [a,b]=bandRange(selCol);c.fillStyle='#d3e6f6';drawRect(c,DLc.rect(a,b,-V/2,V/2));}
+  c.fillStyle='#6b8296';c.font='10px system-ui,sans-serif';
+  for(let k=0;k<=us.length;k++){
+    const [ua,ub]=bandRange(k);const vs=[-V/2,...bands[k].slice().sort((a,b)=>a-b),V/2];
+    const wu=(ub-ua)-(k>0?dt/2:0)-(k<us.length?dt/2:0);
+    for(let j=0;j<vs.length-1;j++){
+      const wv=(vs[j+1]-vs[j])-(j>0?dt/2:0)-(j<vs.length-2?dt/2:0);
+      const r=DLc.rect(ua,ub,vs[j],vs[j+1]);const [px,py]=toPx((r.x0+r.x1)/2,(r.y0+r.y1)/2);
+      const wx=DLc.rows?wv:wu,wy=DLc.rows?wu:wv;
+      if((r.x1-r.x0)*pm.s>34&&(r.y1-r.y0)*pm.s>13)c.fillText(Math.max(0,wx).toFixed(0)+'×'+Math.max(0,wy).toFixed(0),px,py+3.5);
+    }
+  }
+  const blue='#2f7fc8',orange='#f08a24',lw=Math.max(3,dt*pm.s);
+  const line=(r,on)=>{c.fillStyle=on?orange:blue;const cx=(r.x0+r.x1)/2,cy=(r.y0+r.y1)/2;
+    if(r.x1-r.x0<r.y1-r.y0){const [px,a]=toPx(cx,r.y1),[,b]=toPx(cx,r.y0);c.fillRect(px-lw/2,a,lw,b-a);}
+    else{const [a,py]=toPx(r.x0,cy),[b]=toPx(r.x1,cy);c.fillRect(a,py-lw/2,b-a,lw);}};
+  for(let k=0;k<=us.length;k++){const [ua,ub]=bandRange(k);
+    bands[k].forEach((v,j)=>line(DLc.rect(ua,ub,v,v),sel&&sel.t==='s'&&sel.c===k&&sel.j===j));}
+  us.forEach((u,i)=>line(DLc.rect(u,u,-V/2,V/2),sel&&sel.t==='p'&&sel.i===i));
+  c.restore();path();c.lineWidth=2.5;c.strokeStyle=blue;c.stroke();
+  updSel();
+}
+function updSel(){
+  const box=document.getElementById('selrow'),inp=document.getElementById('selval'),lab=document.getElementById('sellab');
+  const bn=bandName(),P=TP();
+  document.getElementById('planhint').innerHTML=`Rum-opdeling set oppefra. <b>Klik</b> i en ${bn} for at vælge den, <b>dobbeltklik</b> for at tilføje en væg dér. <b>Træk</b> i en væg for at flytte den. Vælg den og tryk <b>Slet</b> for at fjerne den.`;
+  document.getElementById('delw').disabled=!sel;
+  document.getElementById('even').textContent=sel&&sel.t==='p'?'Fordel gennemgående vægge jævnt':'Fordel '+bn+' '+(selCol+1)+' jævnt';
+  document.getElementById('addh').textContent='+ Væg i '+bn+' '+(selCol+1);
+  if(!sel){box.style.display='none';return;}
+  box.style.display='flex';const {U,V}=DLc;const rows=DLc.rows;
+  const fromLeft='mm fra venstre indervæg',fromFront='mm fra forreste indervæg';
+  if(sel.t==='p'){lab.textContent='Valgt væg, '+(rows?fromFront:fromLeft);if(document.activeElement!==inp)inp.value=(P.xs[sel.i]*U).toFixed(1);}
+  else{lab.textContent='Valgt væg, '+(rows?fromLeft:fromFront);if(document.activeElement!==inp)inp.value=(P.cols[sel.c][sel.j]*V).toFixed(1);}
+}
+const clampF=(f,a=0.02,b=0.98)=>Math.min(b,Math.max(a,isFinite(f)?f:0.5));
+function pLimits(i){const P=TP(),g=(P.dt+3)/DLc.U;return [i>0?P.xs[i-1]+g:0.02,i<P.xs.length-1?P.xs[i+1]-g:0.98];}
+document.getElementById('selval').onchange=e=>{if(!sel)return;const v=+e.target.value,P=TP();
+  if(sel.t==='p'){const [a,b]=pLimits(sel.i);P.xs[sel.i]=clampF(v/DLc.U,a,b);}else P.cols[sel.c][sel.j]=clampF(v/DLc.V);sched();};
+let drag=null;
+function hit(e){
+  const r=plan.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const x=(mx-pm.ox)/pm.s-pm.iw/2,y=pm.id/2-(my-pm.oy)/pm.s,tol=8/pm.s;
+  const u=DLc.rows?y:x,v=DLc.rows?x:y;const {us,bands,U,V}=DLc;
+  let c=0;while(c<us.length&&u>us[c])c++;
+  let best=null,bd=tol;
+  us.forEach((uu,i)=>{const d=Math.abs(uu-u);if(d<bd&&Math.abs(v)<=V/2){bd=d;best={t:'p',i};}});
+  let bsd=tol,bs=null;bands[c].forEach((vv,j)=>{const d=Math.abs(vv-v);if(d<bsd){bsd=d;bs={t:'s',c,j};}});
+  if(bs&&(!best||bsd<bd))best=bs;
+  return {best,c,u,v,mx,my,inside:Math.abs(u)<=U/2&&Math.abs(v)<=V/2};
+}
+plan.addEventListener('pointerdown',e=>{
+  if(!pm)return;const h=hit(e);if(!h.inside&&!h.best)return;plan.focus();
+  selCol=h.best&&h.best.t==='s'?h.best.c:h.c;sel=h.best;
+  if(h.best){plan.setPointerCapture(e.pointerId);drag={...h.best,sx:h.mx,sy:h.my,moved:false};}
+  drawPlan();
+});
+plan.addEventListener('pointermove',e=>{
+  if(!pm)return;const h=hit(e);
+  if(!drag){const horiz=h.best&&((h.best.t==='p')!==DLc.rows);plan.style.cursor=h.best?(horiz?'ew-resize':'ns-resize'):(h.inside?'copy':'default');return;}
+  if(!drag.moved&&Math.hypot(h.mx-drag.sx,h.my-drag.sy)>3)drag.moved=true;
+  if(!drag.moved)return;const P=TP();
+  if(drag.t==='p'){const [a,b]=pLimits(drag.i);P.xs[drag.i]=clampF((h.u+DLc.U/2)/DLc.U,a,b);}
+  else P.cols[drag.c][drag.j]=clampF((h.v+DLc.V/2)/DLc.V);
+  sched();
+});
+plan.addEventListener('pointerup',()=>{drag=null;});plan.addEventListener('pointercancel',()=>{drag=null;});
+plan.addEventListener('dblclick',e=>{const h=hit(e);if(!h.inside||h.best)return;const P=TP();
+  P.cols[h.c].push(clampF((h.v+DLc.V/2)/DLc.V));selCol=h.c;sel={t:'s',c:h.c,j:P.cols[h.c].length-1};sched();});
+function delSel(){if(!sel)return;const P=TP();
+  if(sel.t==='s')P.cols[sel.c].splice(sel.j,1);
+  else{const i=sel.i;P.xs.splice(i,1);const m=P.cols[i].concat(P.cols[i+1]);
+    P.cols.splice(i,2,m.filter((f,k)=>m.findIndex(g=>Math.abs(g-f)<0.01)===k));cur.setCtl('dx',P.dx-1);selCol=Math.min(selCol,P.dx);}
+  sel=null;sched();}
+plan.addEventListener('keydown',e=>{if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();}});
+document.getElementById('delw').onclick=delSel;
+document.getElementById('addh').onclick=()=>{const P=TP();
+  const a=[0,...P.cols[selCol].slice().sort((p,q)=>p-q),1];let gi=0,gs=0;
+  for(let k=0;k<a.length-1;k++)if(a[k+1]-a[k]>gs){gs=a[k+1]-a[k];gi=k;}
+  P.cols[selCol].push((a[gi]+a[gi+1])/2);sel={t:'s',c:selCol,j:P.cols[selCol].length-1};sched();};
+document.getElementById('even').onclick=()=>{const P=TP();
+  if(sel&&sel.t==='p')P.xs=P.xs.map((_,i)=>(i+1)/(P.dx+1));
+  else{const n=P.cols[selCol].length;P.cols[selCol]=Array.from({length:n},(_,i)=>(i+1)/(n+1));sel=null;}
+  sched();};
+new ResizeObserver(()=>{if(pm&&cur&&cur.hasPlan)drawPlan();}).observe(document.getElementById('panel'));
+
+// ---------- 3D ----------
+const cv=document.getElementById('c');
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});ren.setPixelRatio(Math.min(2,devicePixelRatio));
+ren.setClearColor(0xf4f2ee);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(35,1,1,5000);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb8b2a6,0.75));
+const dl1=new THREE.DirectionalLight(0xffffff,0.65);dl1.position.set(1,2,1.5);scene.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(-1.5,0.5,-1);scene.add(dl2);
+const world=new THREE.Group();world.rotation.x=-Math.PI/2;scene.add(world);
+scene.add(new THREE.GridHelper(600,60,0xd6d1c7,0xe6e2da));
+const mats={};
+function mat(col,ghost){const k=col+(ghost?'g':'');if(!mats[k])mats[k]=new THREE.MeshStandardMaterial({color:col,flatShading:true,roughness:.6,metalness:.05,side:THREE.DoubleSide,transparent:!!ghost,opacity:ghost?0.35:1});return mats[k];}
+function geo(arr){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));g.computeVertexNormals();return g;}
+const S={root:null,state:{},bounds:null,
+  mesh(tris,col,parent,ghost){const m=new THREE.Mesh(geo(tris),mat(col,ghost));(parent||S.root).add(m);
+    const off=parent&&parent.userData.off||[0,0,0];m.position.set(-off[0],-off[1],-off[2]);
+    if(!ghost){const p=parent?parent.position:{x:0,y:0,z:0},b=S.bounds,ox=p.x-off[0],oy=p.y-off[1],oz=p.z-off[2];
+      for(let i=0;i<tris.length;i+=3){b[0]=Math.min(b[0],tris[i]+ox);b[1]=Math.min(b[1],tris[i+1]+oy);b[2]=Math.min(b[2],tris[i+2]+oz);
+        b[3]=Math.max(b[3],tris[i]+ox);b[4]=Math.max(b[4],tris[i+1]+oy);b[5]=Math.max(b[5],tris[i+2]+oz);}}
+    return m;},
+  // drejepunkt/gruppe i (x,y,z); off = forskydning af indholdet (fx hængselaksen)
+  pivot(x,y,z,off){const g=new THREE.Group();g.position.set(x,y,z);g.userData.off=off||[0,0,0];S.root.add(g);return g;},
+};
+const orb={th:-0.75,ph:1.0,r:260,tx:0,ty:20,tz:0};
+function place(){cam.position.set(orb.tx+orb.r*Math.sin(orb.ph)*Math.sin(orb.th),orb.ty+orb.r*Math.cos(orb.ph),orb.tz+orb.r*Math.sin(orb.ph)*Math.cos(orb.th));cam.lookAt(orb.tx,orb.ty,orb.tz);}
+function resize(){const r=cv.parentElement.getBoundingClientRect();ren.setSize(r.width,r.height,false);cam.aspect=r.width/Math.max(1,r.height);cam.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(cv.parentElement);
+const ptrs=new Map();let pinch0=0,r0=0;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a[0]-b[0],a[1]-b[1]);r0=orb.r;}});
+cv.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);const dx=e.clientX-p[0],dy=e.clientY-p[1];ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===1){orb.th-=dx*0.008;orb.ph=Math.max(0.08,Math.min(Math.PI-0.08,orb.ph-dy*0.008));}
+  else if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch0)orb.r=Math.max(20,Math.min(3000,r0*pinch0/d));}
+});
+const up=e=>{ptrs.delete(e.pointerId);pinch0=0;};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+cv.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.max(20,Math.min(3000,orb.r*Math.exp(e.deltaY*0.001)));},{passive:false});
+(function loop(){place();ren.render(scene,cam);requestAnimationFrame(loop);})();
+
+// ---------- Opbygning ----------
+let cur=null,model=null;
+function rebuild(){
+  const T=cur,P=T.P;
+  if(T.hasPlan){syncDiv();drawPlan();}
+  model=T.make(P);T.model=model;
+  if(S.root){world.remove(S.root);S.root.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
+  S.root=new THREE.Group();world.add(S.root);S.state={};S.bounds=[1e9,1e9,1e9,-1e9,-1e9,-1e9];
+  T.setup(model,S,P);
+  if(!T.framed){frame();T.framed=true;}
+  applyHud();
+  const w=document.getElementById('warn');w.style.display=model.warn.length?'block':'none';w.innerHTML=model.warn.join('<br>');
+  const tris=countTris();
+  document.getElementById('stats').innerHTML=T.stats(model,P).concat([['Trekanter',tris.toLocaleString('da-DK')]]).map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('');
+}
+function countTris(){let n=0;S.root.traverse(o=>{if(o.geometry&&!o.material.transparent)n+=o.geometry.attributes.position.count/3;});return n;}
+function frame(){const b=S.bounds;if(b[0]>b[3])return;
+  const cx=(b[0]+b[3])/2,cy=(b[1]+b[4])/2,cz=(b[2]+b[5])/2,ext=Math.max(b[3]-b[0],b[4]-b[1],b[5]-b[2]);
+  orb.tx=cx;orb.ty=cz*0.8;orb.tz=-cy;orb.r=Math.max(60,ext*2.4);}
+let pend=false;function sched(){if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;rebuild();});}}
+const hud=document.getElementById('hud'),ang=document.getElementById('ang'),angv=document.getElementById('angv'),hudLbl=document.getElementById('hudlbl'),pp=document.getElementById('pp');
+function applyHud(){const T=cur;if(!T.hud){hud.style.display='none';return;}hud.style.display='flex';
+  ang.min=T.hud.min;ang.max=T.hud.max;ang.value=T.hudV;angv.textContent=T.hudV+T.hud.unit;hudLbl.textContent=T.hud.label;
+  pp.style.display=T.hud.btn?'':'none';if(T.hud.btn)pp.textContent=T.hud.btn;T.hud.apply(S,+T.hudV);}
+ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
+pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
+
+// ---------- Faner ----------
+const tabs=document.getElementById('tabs');
+for(const T of TOOLS){const b=document.createElement('button');b.textContent=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
+function switchTool(id){
+  const T=TOOLS.find(t=>t.id===id)||TOOLS[0];if(cur===T)return;
+  if(cur)cur.el.style.display='none';cur=T;T.el.style.display='';sel=null;selCol=0;
+  for(const t of TOOLS)t.tab.classList.toggle('on',t===T);
+  const pb=document.getElementById('planbox');if(T.hasPlan){T.el.appendChild(pb);pb.style.display='';}else pb.style.display='none';
+  document.getElementById('dl').textContent=T.dl;
+  const ex=document.getElementById('dlExtra');ex.style.display=T.extra?'':'none';if(T.extra)ex.textContent=T.extra.label;
+  document.getElementById('msg').textContent='';
+  refresh();rebuild();
+}
+window.addEventListener('hashchange',()=>switchTool(location.hash.slice(1)));
+
+// ---------- Download ----------
+let dlCap=null;
+(async()=>{try{if(window.claude&&typeof window.claude.use==='function')dlCap=await window.claude.use('downloads');}catch(e){dlCap=null;}})();
+const msg=document.getElementById('msg');
+async function offer(files,zipName){
+  const fl=files.map(f=>({name:f.name+'.stl',data:stl(f.tris)}));
+  if(dlCap){
+    try{await dlCap.save({filename:zipName+'.zip',data:zipFiles(fl)});msg.textContent=fl.length>1?`Gemt som ZIP med ${fl.length} STL-filer.`:'Gemt som ZIP med STL-filen indeni.';}
+    catch(e){msg.textContent=e&&e.code==='declined'?'Download annulleret.':'Download kunne ikke gennemføres her ('+(e&&e.code||'fejl')+').';}
+    return;
+  }
+  const blob=fl.length>1?zipFiles(fl):new Blob([fl[0].data],{type:'model/stl'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fl.length>1?zipName+'.zip':fl[0].name;document.body.appendChild(a);a.click();a.remove();
+  msg.textContent=fl.length>1?`ZIP med ${fl.length} STL-filer genereret.`:'STL-fil genereret.';
+}
+document.getElementById('dl').onclick=()=>{const T=cur,P=T.P;const fs=T.files(T.make(P),P);offer(fs,fs.length>1?cur.id+'_'+new Date().toISOString().slice(0,10):fs[0].name);};
+document.getElementById('dlExtra').onclick=()=>{const fs=cur.extra.files(cur.P);offer(fs,fs[0].name);};
+
+// ---------- Gem og del ----------
+const SKEY='haengselaeske.gemte';
+function stateOf(T){const s={tool:T.id};for(const d of T.defs)if(d.k&&!d.noGeom)s[d.k]=Array.isArray(T.P[d.k])?T.P[d.k].map(x=>({...x})):T.P[d.k];if(T.hasPlan){s.xs=T.P.xs.slice();s.cols=T.P.cols.map(c=>c.slice());}s.prof=T.P.prof;return s;}
+function applyState(s){
+  if(!s||typeof s!=='object')throw new Error('ugyldig');
+  const T=TOOLS.find(t=>t.id===(s.tool||'aeske'));if(!T)throw new Error('ukendt');
+  for(const d of T.defs){if(!d.k||!(d.k in s))continue;let v=s[d.k];
+    if(d.type==='holes'){if(!Array.isArray(v))continue;v=v.slice(0,30).map(h=>({s:h.s==='s'?'s':'c',a:Math.min(150,Math.max(2,+h.a||10)),b:Math.min(40,Math.max(0.8,+h.b||3)),n:Math.min(20,Math.max(1,Math.round(+h.n||1)))}));}
+    else if(d.type==='check')v=!!v;else if(d.type==='text')v=String(v).slice(0,d.max||40);else if(d.type==='select'){if(!d.opts.some(o=>String(o[0])===String(v)))continue;if(d.num)v=+v;}
+    else{v=+v;if(!isFinite(v))continue;v=Math.min(d.max,Math.max(d.min,v));}
+    T.setCtl(d.k,v);}
+  if(T.hasPlan&&Array.isArray(s.xs)&&Array.isArray(s.cols)&&s.xs.length===T.P.dx){T.P.xs=s.xs.map(f=>clampF(+f));T.P.cols=s.cols.slice(0,T.P.dx+1).map(c=>(Array.isArray(c)?c:[]).map(f=>clampF(+f)));}
+  T.framed=false;
+  if(cur!==T){try{location.hash=T.id;}catch(e){}switchTool(T.id);}else{sel=null;selCol=0;refresh();sched();}
+}
+function loadSaves(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}')||{};}catch(e){return {};}}
+function storeSaves(o){try{localStorage.setItem(SKEY,JSON.stringify(o));return true;}catch(e){return false;}}
+const saveMsg=document.getElementById('saveMsg'),loadSel=document.getElementById('loadSel');
+const toolName=s=>(TOOLS.find(t=>t.id===((s&&s.tool)||'aeske'))||TOOLS[0]).name;
+function fillSaves(){const o=loadSaves();const names=Object.keys(o).sort((a,b)=>a.localeCompare(b,'da'));
+  loadSel.innerHTML=`<option value="">${names.length?'Hent gemt …':'Intet gemt endnu'}</option>`+names.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${toolName(o[n])}: ${n.replace(/</g,'&lt;')}</option>`).join('');}
+document.getElementById('saveBtn').onclick=()=>{const n=document.getElementById('saveName').value.trim()||(cur.name+' '+new Date().toLocaleString('da-DK'));
+  const o=loadSaves();o[n]=stateOf(cur);saveMsg.textContent=storeSaves(o)?`Gemt som “${n}” i denne browser.`:'Kunne ikke gemme her – brug delekoden i stedet.';fillSaves();};
+loadSel.onchange=()=>{const n=loadSel.value;if(!n)return;const o=loadSaves();try{applyState(o[n]);saveMsg.textContent=`Hentede “${n}”.`;}catch(e){saveMsg.textContent='Kunne ikke hente.';}loadSel.value='';};
+document.getElementById('delSave').onclick=()=>{const o=loadSaves();
+  const n=loadSel.value||document.getElementById('saveName').value.trim();
+  if(!n||!o[n]){saveMsg.textContent='Vælg det gemte i listen (eller skriv navnet) for at slette det.';return;}
+  delete o[n];storeSaves(o);fillSaves();saveMsg.textContent=`Slettede “${n}”.`;};
+const enc=s=>btoa(unescape(encodeURIComponent(JSON.stringify(s)))),dec=c=>JSON.parse(decodeURIComponent(escape(atob(c.trim()))));
+document.getElementById('copyCode').onclick=async()=>{const code='AESKE1:'+enc(stateOf(cur));
+  try{await navigator.clipboard.writeText(code);saveMsg.textContent='Delekoden er kopieret. Send den til en anden, som kan indlæse den her.';}
+  catch(e){document.getElementById('pasteBox').style.display='block';const ta=document.getElementById('codeTa');ta.value=code;ta.select();saveMsg.textContent='Kunne ikke kopiere automatisk – koden står i feltet, kopiér den selv.';}};
+document.getElementById('showPaste').onclick=()=>{const b=document.getElementById('pasteBox');b.style.display=b.style.display==='none'?'block':'none';};
+document.getElementById('loadCode').onclick=()=>{const t=document.getElementById('codeTa').value.trim().replace(/^AESKE1:/,'');
+  try{applyState(dec(t));saveMsg.textContent='Delekoden er indlæst.';}catch(e){saveMsg.textContent='Det ligner ikke en gyldig delekode.';}};
+
+fillSaves();resize();
+switchTool((location.hash||'').slice(1));
+
+</script>
+</body>
+</html>
