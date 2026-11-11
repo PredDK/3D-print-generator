@@ -272,11 +272,13 @@ function buildCableLoop(P){
   if(scr)layered(o,bp,zs.flatMap((z,i)=>screwFeats(yh,z,P.sd,P.shd,bt,'s'+i)),-bt,0,false,MAP_X);
   else if(mg){if(bt<magNeed(P)-1e-6){warn.push(`Bagpladen er for tynd til magneterne – øg den til mindst ${f1n(magNeed(P))} mm.`);extrude(o,bp,[],-bt,0,MAP_X);}
     else layered(o,bp,magFeats(zs.map(z=>[yh,z]),P),-bt,0,true,MAP_X);}
-  else if(dk){const T=P.T,tj=P.th,J=P.jaw,sq=P.sq;Ydesk=yT+t/2;const y0=Ydesk-T;
-    const cl=[[-bt,y0-tj],[J,y0-tj],[J,y0+sq],[J-1.5,y0+sq+0.6],[0,y0],[0,Ydesk],[J-1.5,Ydesk],[J,Ydesk+0.6],[J,Ydesk+tj],[-bt,Ydesk+tj]];
-    if(y0-tj>vb)extrude(o,[[-bt,vb],[0,vb],[0,y0-tj+0.1],[-bt,y0-tj+0.1]],[],0,w,MAP_Z);
+  else if(dk){// klemme over kanten: bro bagud fra toppen og et ben ned på den anden side af pladen
+    const T=P.T,tj=P.th,J=P.jaw,sq=P.sq,Yb=yT+t/2;
+    extrude(o,bp,[],-bt,0,MAP_X);
+    const cl=[[-bt,top-0.3],[0,top-0.3],[0,Yb],[T,Yb],[T-sq,Yb-J+2],[T-sq+1.2,Yb-J],[T+tj,Yb-J],[T+tj,Yb+tj],[-bt,Yb+tj]];
     extrude(o,cl,[],0,w,MAP_Z);
-    ghost={x0:-w*2,x1:w*2,y0:0.3,y1:150,z0:y0,z1:Ydesk};}
+    if(J>Yb-vb+tj)warn.push('Klemmens ben er længere end bøjlen – det er fint, men bøjlen hænger så højere end benet.');
+    ghost={x0:-w*2,x1:w*2,y0:0,y1:T,z0:Yb-90,z1:Yb};}
   else extrude(o,bp,[],-bt,0,MAP_X);
   let skInfo=null,needsSupport=false;
   if(sk){const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-bt+0.3;

@@ -750,11 +750,13 @@ function buildCableLoop(P){
   if(scr)layered(o,bp,zs.flatMap((z,i)=>screwFeats(yh,z,P.sd,P.shd,bt,'s'+i)),-bt,0,false,MAP_X);
   else if(mg){if(bt<magNeed(P)-1e-6){warn.push(`Bagpladen er for tynd til magneterne – øg den til mindst ${f1n(magNeed(P))} mm.`);extrude(o,bp,[],-bt,0,MAP_X);}
     else layered(o,bp,magFeats(zs.map(z=>[yh,z]),P),-bt,0,true,MAP_X);}
-  else if(dk){const T=P.T,tj=P.th,J=P.jaw,sq=P.sq;Ydesk=yT+t/2;const y0=Ydesk-T;
-    const cl=[[-bt,y0-tj],[J,y0-tj],[J,y0+sq],[J-1.5,y0+sq+0.6],[0,y0],[0,Ydesk],[J-1.5,Ydesk],[J,Ydesk+0.6],[J,Ydesk+tj],[-bt,Ydesk+tj]];
-    if(y0-tj>vb)extrude(o,[[-bt,vb],[0,vb],[0,y0-tj+0.1],[-bt,y0-tj+0.1]],[],0,w,MAP_Z);
+  else if(dk){// klemme over kanten: bro bagud fra toppen og et ben ned på den anden side af pladen
+    const T=P.T,tj=P.th,J=P.jaw,sq=P.sq,Yb=yT+t/2;
+    extrude(o,bp,[],-bt,0,MAP_X);
+    const cl=[[-bt,top-0.3],[0,top-0.3],[0,Yb],[T,Yb],[T-sq,Yb-J+2],[T-sq+1.2,Yb-J],[T+tj,Yb-J],[T+tj,Yb+tj],[-bt,Yb+tj]];
     extrude(o,cl,[],0,w,MAP_Z);
-    ghost={x0:-w*2,x1:w*2,y0:0.3,y1:150,z0:y0,z1:Ydesk};}
+    if(J>Yb-vb+tj)warn.push('Klemmens ben er længere end bøjlen – det er fint, men bøjlen hænger så højere end benet.');
+    ghost={x0:-w*2,x1:w*2,y0:0,y1:T,z0:Yb-90,z1:Yb};}
   else extrude(o,bp,[],-bt,0,MAP_X);
   let skInfo=null,needsSupport=false;
   if(sk){const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-bt+0.3;
@@ -1348,14 +1350,14 @@ TOOLS.push({id:'kabel',name:'Kabel',dl:'Download STL',
   {k:'cw',l:'Vægtykkelse',min:1.2,max:3,st:0.1,v:1.6,show:P=>P.ctype!=='loop'},
   {k:'w',l:'Clipsens bredde',min:6,max:80,st:1,v:12},
   {sec:'Bordkant',show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
-  {k:'T',l:'Bordpladens tykkelse',min:8,max:60,st:0.5,v:20,show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
+  {k:'T',l:P=>P.ctype==='loop'?'Pladens tykkelse':'Bordpladens tykkelse',min:8,max:60,st:0.5,v:20,show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
   {k:'place',l:'Kablerne sidder',type:'select',opts:[['front','Foran på kanten'],['under','Under bordet']],v:'front',show:P=>P.ctype==='desk'},
   {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
   {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
   {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.ctype==='desk'||(P.ctype==='loop'&&P.mount==='desk')},
   {sec:'Montering',show:P=>P.ctype!=='desk'},
   {k:'bt',l:P=>P.mount==='skadis'?'Bagstykkets tykkelse':'Bundpladens tykkelse',min:1.6,max:5,st:0.1,v:2.4,show:P=>P.ctype==='wall'},
-  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruer'],['magnet','Magneter'],['tape','Dobbeltklæbende tape'],['desk','Bordkant-klemme bagpå']],v:'screw',optShow:(P,v)=>v!=='desk'||P.ctype==='loop',show:P=>(P.ctype==='wall'||P.ctype==='loop')},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruer'],['magnet','Magneter'],['tape','Dobbeltklæbende tape'],['desk','Klemme over kanten (bagpå)']],v:'screw',optShow:(P,v)=>v!=='desk'||P.ctype==='loop',show:P=>(P.ctype==='wall'||P.ctype==='loop')},
   {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='magnet'},
   {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&P.mount==='magnet'},
   {k:'nscrew',l:P=>P.mount==='magnet'?'Antal magneter':'Antal skruehuller',type:'select',opts:[[1,'1 (i den ene ende)'],[2,'2 (i begge ender)']],v:1,num:true,show:P=>(P.ctype==='wall'||P.ctype==='loop')&&(P.mount==='screw'||P.mount==='magnet')},
@@ -1375,7 +1377,7 @@ TOOLS.push({id:'kabel',name:'Kabel',dl:'Download STL',
  stats(m,P){return P.ctype==='loop'?[['Mål',m.dims.map(f1).join(' × ')],['Kammer',`${f1(P.lD)} × ${f1(P.lH)} mm`],['Spalte',`${f1(P.lg)} mm`]]:[['Mål',m.dims.map(f1).join(' × ')],['Kabler',`${P.cn} × Ø${f1(P.cd)} mm`]];},
  tips:P=>P.ctype==='loop'?['Printes liggende på siden, så profilen ligger fladt – så bliver læben fjedrende og stærk, og der skal ingen support til'+(P.mount==='skadis'&&P.hookPos==='center'?' (undtagen under krogen i midten)':'')+'.',
    ...(P.mount==='screw'?['Skru den fast gennem det store hul i forsiden – skruehovedet går igennem det.']:[]),
-   ...(P.mount==='desk'?['Klemmen skubbes ind over bordkanten bagfra; kammeret hænger foran kanten.']:[]),
+   ...(P.mount==='desk'?['Klemmen hægtes ned over kanten af en plade (fx bordplade, hylde eller skærmvæg); bøjlen hænger på den ene side og benet på den anden.']:[]),
    'Kablerne trykkes op i kammeret gennem spalten forneden.','Brug flere i træk langs væggen eller bordet for at føre et kabelbundt.']
   :[P.ctype==='desk'?'Printes liggende, så profilen ligger fladt – stærkest og ingen support.':P.mount==='skadis'?(P.hookPos==='center'?'Printes liggende. Krogen i midten skal have support under sig (kun fra printpladen).':'Printes liggende, så profilen ligger fladt – stærkest og ingen support.'):'Printes med bundpladen nedad.','Skal du bruge flere, så kopiér dem i slicerprogrammet.',P.ctype==='desk'?'Sidder den løst, så øg klemkraften eller mål bordpladen igen.':P.mount==='skadis'?'Kablerne klikkes ind i kanalerne forfra.':'Kablerne klikkes ned i kanalerne fra oven.'],
 });
