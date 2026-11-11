@@ -882,15 +882,32 @@ function buildStrip(P){
   }
   if(P.form==='channel'){
     // to bøjler forbundet af en bjælke bagpå. Bygget med bunden nedad: x = langs dåsen, y = på tværs, z = op fra bunden
-    const o=[],cw=P.cw,L=P.sl+c,x0=-L/2,x1=L/2,sk=P.mount==='skadis',bw=sk?2*yo:Math.min(2*yo,P.bw),Ht=top+lip+1.2;
+    const o=[],cw=P.cw,L=P.sl+c,x0=-L/2,x1=L/2,sk=P.mount==='skadis',dk=P.mount==='desk',stand=sk||dk,Ht=top+lip+1.2;
+    // bordkant: klemme bag bunden (z<0), bordpladens overside i flugt med holderens top
+    const yd=dk?yo-P.th-P.T:0,vb=dk?Math.min(-yo,yd-P.th):-yo;
+    const bw=stand?yo-vb:Math.min(2*yo,P.bw),bc=stand?(yo+vb)/2:0;
     const clips=[[x0,x0+cw],[x1-cw,x1]];
     const useMag=P.mount==='magnet'&&magOK();
     for(const [a,b] of clips){const cx=(a+b)/2;
       const f=P.mount==='screw'?screwFeats(cx,0,P.sd,P.shd,tb,'s'+a):useMag?magFeats([[cx,-Sw/4],[cx,Sw/4]],P,'m'+a):[];
-      layered(o,[[a,-yo],[b,-yo],[b,yo],[a,yo]],f,0,tb,!useMag);
-      for(const arm of armPolys(S,'45'))extrude(o,arm.map(([u,v])=>[v,u]),[],a,b,MAP_X);}
-    box(o,x0+cw-1,x1-cw+1,-bw/2,bw/2,0,tb);
+      layered(o,[[a,vb],[b,vb],[b,yo],[a,yo]],f,0,tb,!useMag);
+      for(const arm of armPolys(S,'45'))extrude(o,arm.map(([u,v])=>[v,u]),[],a,b,MAP_X);
+      if(dk){const jaw=P.jaw,th=P.th,sq=P.sq,T=P.T;
+        extrude(o,[[-jaw,yd+T],[0.2,yd+T],[0.2,yo],[-jaw+1.5,yo],[-jaw,yo-1]].map(([u,v])=>[v,u]),[],a,b,MAP_X);
+        extrude(o,[[0.2,yd-th],[0.2,yd],[-jaw+1.5,yd+sq+0.6],[-jaw,yd+sq],[-jaw,yd-th]].map(([u,v])=>[v,u]),[],a,b,MAP_X);}}
+    box(o,x0+cw-1,x1-cw+1,bc-bw/2,bc+bw/2,0,tb);
     let print=o,view=o;
+    if(dk){
+      // printes stående (x1-enden nedad); den øverste bøjle får 45°-ribber under armene og klemmerne
+      const xa=x0+cw,jaw=P.jaw,th=P.th,T=P.T;
+      for(const s of [1,-1]){
+        extrude(o,[[xa-0.1,0],[xa+Ht,0],[xa-0.1,Ht+0.1]].map(([x,z])=>[z,x]),[],s>0?ys-0.05:-yo,s>0?yo:-ys+0.05,(u,v,w)=>[v,w,u]);
+        extrude(o,[[xa-0.1,top],[xa+(Ht-top),top],[xa-0.1,Ht]].map(([x,z])=>[z,x]),[],s>0?ys-lip:-ys,s>0?ys:-ys+lip,(u,v,w)=>[v,w,u]);}
+      for(const [y0,y1] of [[yd+T,yo],[yd-th,yd]])
+        extrude(o,[[xa-0.1,-jaw],[xa-0.1,0.1],[xa+jaw,0.1]].map(([x,z])=>[z,x]),[],y0,y1,(u,v,w)=>[v,w,u]);
+      print=mapPts(o,(x,y,z)=>[z,y,x1-x]);
+      view=mapPts(o,(x,y,z)=>[x,-z,y]);
+    }
     if(sk){
       // hænger lodret: kroge øverst (x = x1); printes stående med den ende nedad. Den nederste bøjle får 45°-ribber.
       const A=-tb+0.3,mp=(u,v,w)=>[v,-w,-u];
@@ -904,8 +921,10 @@ function buildStrip(P){
       view=mapPts(o,(x,y,z)=>[y,-z,x-x0]);
     }
     const ghost=[];
-    if(sk)box(ghost,-P.sw/2,P.sw/2,-(tb+P.sh),-tb,0.25,L-0.25);else box(ghost,-P.sl/2,P.sl/2,-P.sw/2,P.sw/2,tb,tb+P.sh);
-    return {view,ghost,print,warn,dims:[L,2*yo,Ht],standing:sk};
+    if(sk)box(ghost,-P.sw/2,P.sw/2,-(tb+P.sh),-tb,0.25,L-0.25);
+    else if(dk){box(ghost,-P.sl/2,P.sl/2,-(tb+P.sh),-tb,-P.sw/2,P.sw/2);box(ghost,-L/2-40,L/2+40,0,60,yd,yd+P.T);}
+    else box(ghost,-P.sl/2,P.sl/2,-P.sw/2,P.sw/2,tb,tb+P.sh);
+    return {view,ghost,print,warn,dims:[L,yo-vb,Ht+(dk?P.jaw:0)],standing:stand};
   }
   // stander: en bøjle vippet i vinklen 'ang' på en hul trekant; profil i print-XY (x bagud, y op), ekstruderet i z = bredde
   const o=[],a=P.ang*Math.PI/180,d=[Math.cos(a),Math.sin(a)],n=[-Math.sin(a),Math.cos(a)],tw=P.tw,w=P.cw;
@@ -1332,7 +1351,7 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {sec:'Holder'},
   {k:'cw',l:P=>P.form==='stand'?'Standerens bredde (langs dåsen)':'Bøjlens bredde',min:10,max:600,st:1,v:22},
   {note:'Sæt bredden til dåsens længde for at få én samlet stander.',show:P=>P.form==='stand'},
-  {k:'bw',l:'Bjælkens højde',min:8,max:80,st:1,v:20,show:P=>P.form==='channel'&&P.mount!=='skadis'},
+  {k:'bw',l:'Bjælkens højde',min:8,max:80,st:1,v:20,show:P=>P.form==='channel'&&P.mount!=='skadis'&&P.mount!=='desk'},
   {k:'tb',l:'Bundtykkelse',min:2,max:6,st:0.1,v:3},
   {k:'ta',l:'Sidernes tykkelse',min:1.6,max:6,st:0.1,v:3},
   {k:'lip',l:'Kantens greb over dåsen',min:1.5,max:10,st:0.5,v:4},
@@ -1340,18 +1359,17 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {k:'ang',l:'Vinkel (°)',min:15,max:80,st:1,v:45,show:P=>P.form==='stand'},
   {k:'tw',l:'Godstykkelse i foden',min:2,max:6,st:0.1,v:3,show:P=>P.form==='stand'},
   {sec:'Montering'},
-  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw'},
-  {note:'Standeren står på bordet – vælg skruehuller, magneter eller ingenting.',show:P=>P.form==='stand'&&(P.mount==='skadis'||P.mount==='desk')},
-  {note:'Bordkant-klemmen findes kun på de enkelte holdere.',show:P=>P.form==='channel'&&P.mount==='desk'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw',optShow:(P,v)=>P.form!=='stand'||['screw','magnet','none'].includes(v)},
+  {note:'Standeren står på bordet, så den kan fastgøres med skruer eller magneter – eller bare stå.',show:P=>P.form==='stand'},
   {k:'sd',l:'Skruediameter',min:2.5,max:6,st:0.5,v:4,show:P=>P.mount==='screw'},
   {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mount==='screw'},
   {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
   {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
-  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen.',show:P=>P.mount==='desk'&&P.form==='clip'},
+  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'&&P.form!=='stand'},
   {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form==='clip'},
   {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'&&P.form!=='stand'},
@@ -1359,16 +1377,16 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  ],
  after(T){const f=T.P.form,m=T.P.mount;
    if(f==='stand'&&(m==='skadis'||m==='desk'))T.setCtl('mount','none');
-   else if(f==='channel'&&m==='desk')T.setCtl('mount','screw');
+
    if(T.P.mount==='magnet'){const need=T.P.magH+1;if(T.P.tb<need)T.setCtl('tb',need);if(f==='stand'&&T.P.tw<need)T.setCtl('tw',need);}},
- make(P){const Q=Object.assign({},P);if(Q.form==='stand'&&(Q.mount==='skadis'||Q.mount==='desk'))Q.mount='none';if(Q.form==='channel'&&Q.mount==='desk')Q.mount='screw';return buildStrip(Q);},
+ make(P){const Q=Object.assign({},P);if(Q.form==='stand'&&(Q.mount==='skadis'||Q.mount==='desk'))Q.mount='none';return buildStrip(Q);},
  setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xf2efe9,null,true);
    if(P.mount==='skadis'&&P.form!=='stand'){const o=[];box(o,-P.sl/2-40,P.sl/2+40,0,P.Tb,-60,(P.form==='channel'?m.dims[0]:0)+60);S.mesh(o,0xe8e2d6,null,true);}},
  files(m,P){const nm={clip:'stikdaase-holder',channel:'stikdaase-holder_samlet',stand:'stikdaase-stander'}[P.form];
    return [{name:`${nm}_${Math.round(P.sw)}x${Math.round(P.sh)}${P.mount==='skadis'?'_skadis':''}`,tris:m.print}];},
  stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],...(P.form!=='channel'?[['Antal i filen',P.form==='stand'&&P.cw>=P.sl*0.6?1:P.count]]:[])];},
  tips:P=>[...(P.form==='clip'?['Bøjlerne printes liggende på siden (som i filen) – så er de stærkest og kan fjedre uden at knække.',P.mount==='skadis'&&P.hookPos==='center'?'Krogen i midten skal have support under sig (kun fra printpladen).':'Ingen support nødvendig.']
-   :P.form==='channel'?[P.mount==='skadis'?'Printes stående med den øverste ende nedad (som i filen). Ribberne under den nederste bøjle gør, at der ikke skal bruges support.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.']
+   :P.form==='channel'?[P.mount==='skadis'||P.mount==='desk'?'Printes stående med den øverste ende nedad (som i filen). Ribberne under den nederste bøjle gør, at der ikke skal bruges support.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.']
    :['Printes liggende på siden (som i filen) – ingen support.','Standeren får automatisk en fod fremad, så den ikke vælter ved stejle vinkler.']),
    'Dåsen klikkes ned mellem kanterne. Er den for stram, så mindsk kantens greb.',...(P.mount==='magnet'?['Magnethullerne er åbne mod monteringsfladen – lim magneterne i.']:[])],
 });
@@ -1434,7 +1452,8 @@ function change(T,d,v){
 }
 function refresh(){
   const T=cur;
-  for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);}
+  for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);
+    if(c.d.optShow)c.row.querySelectorAll('option').forEach(o=>{o.hidden=o.disabled=!c.d.optShow(T.P,o.value);});}
   for(const s of T.secs)s.el.style.display=(!s.d.show||s.d.show(T.P))?'':'none';
   document.getElementById('tips').innerHTML=T.tips(T.P).map(t=>`<li>${t}</li>`).join('');
 }

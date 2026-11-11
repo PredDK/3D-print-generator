@@ -404,15 +404,32 @@ function buildStrip(P){
   }
   if(P.form==='channel'){
     // to bøjler forbundet af en bjælke bagpå. Bygget med bunden nedad: x = langs dåsen, y = på tværs, z = op fra bunden
-    const o=[],cw=P.cw,L=P.sl+c,x0=-L/2,x1=L/2,sk=P.mount==='skadis',bw=sk?2*yo:Math.min(2*yo,P.bw),Ht=top+lip+1.2;
+    const o=[],cw=P.cw,L=P.sl+c,x0=-L/2,x1=L/2,sk=P.mount==='skadis',dk=P.mount==='desk',stand=sk||dk,Ht=top+lip+1.2;
+    // bordkant: klemme bag bunden (z<0), bordpladens overside i flugt med holderens top
+    const yd=dk?yo-P.th-P.T:0,vb=dk?Math.min(-yo,yd-P.th):-yo;
+    const bw=stand?yo-vb:Math.min(2*yo,P.bw),bc=stand?(yo+vb)/2:0;
     const clips=[[x0,x0+cw],[x1-cw,x1]];
     const useMag=P.mount==='magnet'&&magOK();
     for(const [a,b] of clips){const cx=(a+b)/2;
       const f=P.mount==='screw'?screwFeats(cx,0,P.sd,P.shd,tb,'s'+a):useMag?magFeats([[cx,-Sw/4],[cx,Sw/4]],P,'m'+a):[];
-      layered(o,[[a,-yo],[b,-yo],[b,yo],[a,yo]],f,0,tb,!useMag);
-      for(const arm of armPolys(S,'45'))extrude(o,arm.map(([u,v])=>[v,u]),[],a,b,MAP_X);}
-    box(o,x0+cw-1,x1-cw+1,-bw/2,bw/2,0,tb);
+      layered(o,[[a,vb],[b,vb],[b,yo],[a,yo]],f,0,tb,!useMag);
+      for(const arm of armPolys(S,'45'))extrude(o,arm.map(([u,v])=>[v,u]),[],a,b,MAP_X);
+      if(dk){const jaw=P.jaw,th=P.th,sq=P.sq,T=P.T;
+        extrude(o,[[-jaw,yd+T],[0.2,yd+T],[0.2,yo],[-jaw+1.5,yo],[-jaw,yo-1]].map(([u,v])=>[v,u]),[],a,b,MAP_X);
+        extrude(o,[[0.2,yd-th],[0.2,yd],[-jaw+1.5,yd+sq+0.6],[-jaw,yd+sq],[-jaw,yd-th]].map(([u,v])=>[v,u]),[],a,b,MAP_X);}}
+    box(o,x0+cw-1,x1-cw+1,bc-bw/2,bc+bw/2,0,tb);
     let print=o,view=o;
+    if(dk){
+      // printes stående (x1-enden nedad); den øverste bøjle får 45°-ribber under armene og klemmerne
+      const xa=x0+cw,jaw=P.jaw,th=P.th,T=P.T;
+      for(const s of [1,-1]){
+        extrude(o,[[xa-0.1,0],[xa+Ht,0],[xa-0.1,Ht+0.1]].map(([x,z])=>[z,x]),[],s>0?ys-0.05:-yo,s>0?yo:-ys+0.05,(u,v,w)=>[v,w,u]);
+        extrude(o,[[xa-0.1,top],[xa+(Ht-top),top],[xa-0.1,Ht]].map(([x,z])=>[z,x]),[],s>0?ys-lip:-ys,s>0?ys:-ys+lip,(u,v,w)=>[v,w,u]);}
+      for(const [y0,y1] of [[yd+T,yo],[yd-th,yd]])
+        extrude(o,[[xa-0.1,-jaw],[xa-0.1,0.1],[xa+jaw,0.1]].map(([x,z])=>[z,x]),[],y0,y1,(u,v,w)=>[v,w,u]);
+      print=mapPts(o,(x,y,z)=>[z,y,x1-x]);
+      view=mapPts(o,(x,y,z)=>[x,-z,y]);
+    }
     if(sk){
       // hænger lodret: kroge øverst (x = x1); printes stående med den ende nedad. Den nederste bøjle får 45°-ribber.
       const A=-tb+0.3,mp=(u,v,w)=>[v,-w,-u];
@@ -426,8 +443,10 @@ function buildStrip(P){
       view=mapPts(o,(x,y,z)=>[y,-z,x-x0]);
     }
     const ghost=[];
-    if(sk)box(ghost,-P.sw/2,P.sw/2,-(tb+P.sh),-tb,0.25,L-0.25);else box(ghost,-P.sl/2,P.sl/2,-P.sw/2,P.sw/2,tb,tb+P.sh);
-    return {view,ghost,print,warn,dims:[L,2*yo,Ht],standing:sk};
+    if(sk)box(ghost,-P.sw/2,P.sw/2,-(tb+P.sh),-tb,0.25,L-0.25);
+    else if(dk){box(ghost,-P.sl/2,P.sl/2,-(tb+P.sh),-tb,-P.sw/2,P.sw/2);box(ghost,-L/2-40,L/2+40,0,60,yd,yd+P.T);}
+    else box(ghost,-P.sl/2,P.sl/2,-P.sw/2,P.sw/2,tb,tb+P.sh);
+    return {view,ghost,print,warn,dims:[L,yo-vb,Ht+(dk?P.jaw:0)],standing:stand};
   }
   // stander: en bøjle vippet i vinklen 'ang' på en hul trekant; profil i print-XY (x bagud, y op), ekstruderet i z = bredde
   const o=[],a=P.ang*Math.PI/180,d=[Math.cos(a),Math.sin(a)],n=[-Math.sin(a),Math.cos(a)],tw=P.tw,w=P.cw;

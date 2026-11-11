@@ -391,7 +391,7 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {sec:'Holder'},
   {k:'cw',l:P=>P.form==='stand'?'Standerens bredde (langs dåsen)':'Bøjlens bredde',min:10,max:600,st:1,v:22},
   {note:'Sæt bredden til dåsens længde for at få én samlet stander.',show:P=>P.form==='stand'},
-  {k:'bw',l:'Bjælkens højde',min:8,max:80,st:1,v:20,show:P=>P.form==='channel'&&P.mount!=='skadis'},
+  {k:'bw',l:'Bjælkens højde',min:8,max:80,st:1,v:20,show:P=>P.form==='channel'&&P.mount!=='skadis'&&P.mount!=='desk'},
   {k:'tb',l:'Bundtykkelse',min:2,max:6,st:0.1,v:3},
   {k:'ta',l:'Sidernes tykkelse',min:1.6,max:6,st:0.1,v:3},
   {k:'lip',l:'Kantens greb over dåsen',min:1.5,max:10,st:0.5,v:4},
@@ -399,18 +399,17 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {k:'ang',l:'Vinkel (°)',min:15,max:80,st:1,v:45,show:P=>P.form==='stand'},
   {k:'tw',l:'Godstykkelse i foden',min:2,max:6,st:0.1,v:3,show:P=>P.form==='stand'},
   {sec:'Montering'},
-  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw'},
-  {note:'Standeren står på bordet – vælg skruehuller, magneter eller ingenting.',show:P=>P.form==='stand'&&(P.mount==='skadis'||P.mount==='desk')},
-  {note:'Bordkant-klemmen findes kun på de enkelte holdere.',show:P=>P.form==='channel'&&P.mount==='desk'},
+  {k:'mount',l:'Montering',type:'select',opts:[['skadis','IKEA SKÅDIS'],['screw','Skruehuller'],['magnet','Magneter'],['desk','Bordkant (klemme)'],['none','Ingenting']],v:'screw',optShow:(P,v)=>P.form!=='stand'||['screw','magnet','none'].includes(v)},
+  {note:'Standeren står på bordet, så den kan fastgøres med skruer eller magneter – eller bare stå.',show:P=>P.form==='stand'},
   {k:'sd',l:'Skruediameter',min:2.5,max:6,st:0.5,v:4,show:P=>P.mount==='screw'},
   {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mount==='screw'},
   {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
   {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
-  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form==='clip'},
-  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen.',show:P=>P.mount==='desk'&&P.form==='clip'},
+  {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'&&P.form!=='stand'},
   {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form==='clip'},
   {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'&&P.form!=='stand'},
@@ -418,16 +417,16 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  ],
  after(T){const f=T.P.form,m=T.P.mount;
    if(f==='stand'&&(m==='skadis'||m==='desk'))T.setCtl('mount','none');
-   else if(f==='channel'&&m==='desk')T.setCtl('mount','screw');
+
    if(T.P.mount==='magnet'){const need=T.P.magH+1;if(T.P.tb<need)T.setCtl('tb',need);if(f==='stand'&&T.P.tw<need)T.setCtl('tw',need);}},
- make(P){const Q=Object.assign({},P);if(Q.form==='stand'&&(Q.mount==='skadis'||Q.mount==='desk'))Q.mount='none';if(Q.form==='channel'&&Q.mount==='desk')Q.mount='screw';return buildStrip(Q);},
+ make(P){const Q=Object.assign({},P);if(Q.form==='stand'&&(Q.mount==='skadis'||Q.mount==='desk'))Q.mount='none';return buildStrip(Q);},
  setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xf2efe9,null,true);
    if(P.mount==='skadis'&&P.form!=='stand'){const o=[];box(o,-P.sl/2-40,P.sl/2+40,0,P.Tb,-60,(P.form==='channel'?m.dims[0]:0)+60);S.mesh(o,0xe8e2d6,null,true);}},
  files(m,P){const nm={clip:'stikdaase-holder',channel:'stikdaase-holder_samlet',stand:'stikdaase-stander'}[P.form];
    return [{name:`${nm}_${Math.round(P.sw)}x${Math.round(P.sh)}${P.mount==='skadis'?'_skadis':''}`,tris:m.print}];},
  stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],...(P.form!=='channel'?[['Antal i filen',P.form==='stand'&&P.cw>=P.sl*0.6?1:P.count]]:[])];},
  tips:P=>[...(P.form==='clip'?['Bøjlerne printes liggende på siden (som i filen) – så er de stærkest og kan fjedre uden at knække.',P.mount==='skadis'&&P.hookPos==='center'?'Krogen i midten skal have support under sig (kun fra printpladen).':'Ingen support nødvendig.']
-   :P.form==='channel'?[P.mount==='skadis'?'Printes stående med den øverste ende nedad (som i filen). Ribberne under den nederste bøjle gør, at der ikke skal bruges support.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.']
+   :P.form==='channel'?[P.mount==='skadis'||P.mount==='desk'?'Printes stående med den øverste ende nedad (som i filen). Ribberne under den nederste bøjle gør, at der ikke skal bruges support.':'Printes med bunden nedad. Kanterne har skrå underside, så der skal ingen support til.']
    :['Printes liggende på siden (som i filen) – ingen support.','Standeren får automatisk en fod fremad, så den ikke vælter ved stejle vinkler.']),
    'Dåsen klikkes ned mellem kanterne. Er den for stram, så mindsk kantens greb.',...(P.mount==='magnet'?['Magnethullerne er åbne mod monteringsfladen – lim magneterne i.']:[])],
 });
@@ -493,7 +492,8 @@ function change(T,d,v){
 }
 function refresh(){
   const T=cur;
-  for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);}
+  for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);
+    if(c.d.optShow)c.row.querySelectorAll('option').forEach(o=>{o.hidden=o.disabled=!c.d.optShow(T.P,o.value);});}
   for(const s of T.secs)s.el.style.display=(!s.d.show||s.d.show(T.P))?'':'none';
   document.getElementById('tips').innerHTML=T.tips(T.P).map(t=>`<li>${t}</li>`).join('');
 }
