@@ -487,39 +487,48 @@ function buildStrip(P){
   // bøjlen (bund + arme med kanter)
   const loc=[[[0,-yo],[tb,-yo],[tb,yo],[0,yo]],...armPolys(S,'lead')];
   for(const pl of loc)extrude(o,pl.map(([u,v])=>W2(v,u)),[],0,w,MAP_Z);
-  // hul støttetrekant under bunden
-  const sup=[[Pf[0],0],[Pb[0],0],Pb,Pf];
+  // hul støttetrekant – starter oven på bundpladen, så bundpladens huller ikke bliver fyldt ud
   const off=tw,bx=Pb[0]-off,yAt=x=>Pf[1]+(x-Pf[0])*Math.tan(a)-off/Math.cos(a),xa=Pf[0]+(off-Pf[1]+off/Math.cos(a))/Math.tan(a);
-  const holes=[];if(bx-xa>6&&yAt(bx)-off>6)holes.push([[xa+1,off],[bx,off],[bx,yAt(bx)]]);
+  const sup=[[Pf[0]+0.05,tw-0.05],[Pb[0],tw-0.05],Pb];
+  const hb=tw+0.5,xh=Pf[0]+(hb-Pf[1]+off/Math.cos(a))/Math.tan(a);
+  const holes=[];if(bx-xh>6&&yAt(bx)-hb>6)holes.push([[xh+0.5,hb],[bx,hb],[bx,yAt(bx)]]);
   extrude(o,sup,holes,0,w,MAP_Z);
   // fod fremad, så dåsens tyngdepunkt ligger over foden
-  const cg=W2(0,tb+P.sh/2),xf=Math.min(Pf[0],cg[0]-12),x0=Math.min(xf,Pf[0]);
-  if(xf<Pf[0]-0.5)extrude(o,[[xf,0],[Pf[0]+1,0],[Pf[0]+1,tw],[xf+tw*0.5,tw]],[],0,w,MAP_Z);
-  // bundplade (y∈[0,tw]) med evt. skruehul ovenfra eller magneter nedefra
-  const base=[[x0,0],[Pb[0],0],[Pb[0],w],[x0,w]],bmid=(Math.max(xa+1,x0+4)+bx)/2;
-  if(P.mount==='screw'){layered(o,base,screwFeats(bmid,w/2,P.sd,P.shd,tw,'s'),-tw,0,false,MAP_Y);if(w<P.shd+3)warn.push('Standeren er smal i forhold til skruehovedet – gør den bredere.');}
-  if(P.mount==='magnet'){if(tw<magNeed(P)-1e-6)warn.push(`Godstykkelsen er for tynd til magneterne – øg til mindst ${f1n(magNeed(P))} mm.`);
+  const cg=W2(0,tb+P.sh/2),xf=Math.min(Pf[0],cg[0]-12);
+  let x0=Math.min(xf,Pf[0]),xEnd=Pb[0];
+  const sk=P.mount==='skadis',dk=P.mount==='desk',dBack=dk&&P.standDesk!=='front';
+  // SKÅDIS: bunden forlænges nedad (bagud), så der er plads til den nederste krog/tap
+  if(sk&&(P.skLow||'hook')!=='none')xEnd=Math.max(xEnd,x0+SK.pitch+SK.bh+SK.Ld+2.5);
+  // skruehul i en tap bag standeren, hvor man kan komme til med skruetrækkeren
+  let screwX=null;
+  if(P.mount==='screw'){const tab=P.shd+6;screwX=xEnd+tab/2;xEnd+=tab;if(w<P.shd+3)warn.push('Standeren er smal i forhold til skruehovedet – gør den bredere.');}
+  // bundplade (y∈[0,tw]) hele vejen; skruehul ovenfra eller magneter nedefra
+  const base=[[x0,0],[xEnd,0],[xEnd,w],[x0,w]],bmid=(Math.max(xa+1,x0+4)+bx)/2;
+  if(screwX!=null)layered(o,base,screwFeats(screwX,w/2,P.sd,P.shd,tw,'s'),-tw,0,false,MAP_Y);
+  else if(P.mount==='magnet'){
+    if(tw<magNeed(P)-1e-6){warn.push(`Godstykkelsen er for tynd til magneterne – øg til mindst ${f1n(magNeed(P))} mm.`);layered(o,base,[],-tw,0,true,MAP_Y);}
     else{const sp=Math.min((bx-Math.max(xa+1,x0+4))/2-P.magD/2-1,12);layered(o,base,magFeats(sp>P.magD/2+1?[[bmid-sp,w/2],[bmid+sp,w/2]]:[[bmid,w/2]],P),-tw,0,true,MAP_Y);}}
-  // bordkant: plade ned foran bordkanten og kæbe ind under bordet (bunden er overkæben)
-  if(P.mount==='desk'){const T=P.T,th=P.th,jaw=P.jaw,sq=P.sq;
-    extrude(o,[[x0-th,-T-th],[x0+0.1,-T-th],[x0+0.1,0.1],[x0-th,0.1]],[],0,w,MAP_Z);
-    extrude(o,[[x0-th,-T-th],[x0+jaw,-T-th],[x0+jaw,-T+sq],[x0+jaw-1.5,-T+sq+0.6],[x0,-T],[x0-th,-T]],[],0,w,MAP_Z);}
+  else layered(o,base,[],-tw,0,true,MAP_Y);
+  // bordkant: bunden er overkæben; plade ned langs kanten og kæbe ind under bordet – bagpå (standard) eller forrest
+  if(dk){const T=P.T,th=P.th,jaw=P.jaw,sq=P.sq;
+    if(dBack){const xe=xEnd;
+      extrude(o,[[xe-0.1,-T-th],[xe+th,-T-th],[xe+th,0.1],[xe-0.1,0.1]],[],0,w,MAP_Z);
+      extrude(o,[[xe-jaw,-T+sq],[xe-jaw,-T-th],[xe+th,-T-th],[xe+th,-T],[xe,-T],[xe-jaw+1.5,-T+sq+0.6]],[],0,w,MAP_Z);}
+    else{extrude(o,[[x0-th,-T-th],[x0+0.1,-T-th],[x0+0.1,0.1],[x0-th,0.1]],[],0,w,MAP_Z);
+      extrude(o,[[x0-th,-T-th],[x0+jaw,-T-th],[x0+jaw,-T+sq],[x0+jaw-1.5,-T+sq+0.6],[x0,-T],[x0-th,-T]],[],0,w,MAP_Z);}}
   // SKÅDIS: bunden mod pladen, forkanten opad; krog i profilen ved forkanten
-  let wall=false;
-  if(P.mount==='skadis'){wall=true;const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-tw+0.3,topV=-x0;
-    // forlæng bunden nedad (bagud), så der er plads til den nederste krog/tap
-    let xEnd=Pb[0];if((P.skLow||'hook')!=='none'){const need=x0+SK.pitch+SK.bh+SK.Ld+2.5;if(need>xEnd){extrude(o,[[Pb[0]-1,0],[need,0],[need,tw],[Pb[0]-1,tw]],[],0,w,MAP_Z);xEnd=need;}}
+  if(sk){const zh=P.hookPos==='center'?w/2-SK.tw/2:0,A=-tw+0.3,topV=-x0;
     const put=pr=>{const tmp=[];extrude(tmp,pr,[],-(zh+SK.tw),-zh,MAP_Z);o.push(...mapPts(tmp,(u,v,ww)=>[-v,-u,-ww]));};
     put(skHookProfile(A,topV,P.Tb));const low=skLowerProfile(A,topV,P.Tb,-xEnd+0.5,P.skLow||'hook');if(low)put(low);}
   const view=[],L=P.sl,ws=w>=P.sl*0.6;
-  const vmap=wall?(xo=>(X,Y,Z)=>[xo-(Z-w/2),-Y,-X]):(xo=>(X,Y,Z)=>[xo+Z-w/2,X,Y]);
+  const vmap=sk?(xo=>(X,Y,Z)=>[xo-(Z-w/2),-Y,-X]):(xo=>(X,Y,Z)=>[xo+Z-w/2,X,Y]);
   const place=xo=>view.push(...mapPts(o,vmap(xo)));
   if(ws)place(0);else for(const xo of [-(L/2-w/2-10),L/2-w/2-10])place(xo);
   const gb=[];box(gb,-L/2,L/2,-P.sw/2,P.sw/2,0,P.sh);
   let ghost=mapPts(gb,(x,v,t)=>{const p=W2(v,tb+t);return [x,p[0],p[1]];});
-  if(wall)ghost=mapPts(ghost,(x,X,Y)=>[x,-Y,-X]);
-  if(P.mount==='desk')box(ghost,-L/2-40,L/2+40,x0+0.3,x0+120,-P.T,0);
+  if(sk)ghost=mapPts(ghost,(x,X,Y)=>[x,-Y,-X]);
+  if(dk){if(dBack)box(ghost,-L/2-40,L/2+40,xEnd-150,xEnd-0.3,-P.T,0);else box(ghost,-L/2-40,L/2+40,x0+0.3,x0+150,-P.T,0);}
   if(P.ang>70||P.ang<15)warn.push('Vinklen er meget stejl/flad – tjek at dåsen kan stå stabilt.');
   let mxy=0;for(let i=1;i<o.length;i+=3)mxy=Math.max(mxy,o[i]);
-  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,Pb[0]-x0+(P.mount==='desk'?P.th:0),mxy+(P.mount==='desk'?P.T+P.th:0)],wall,skTop:-x0};
+  return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,xEnd-x0+(dk?P.th:0),mxy+(dk?P.T+P.th:0)],wall:sk,skTop:-x0,screwX,x0,xEnd};
 }
