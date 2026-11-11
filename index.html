@@ -852,12 +852,28 @@ function armPolys(S,style){const {tb,ys,yo,lip,tl,top}=S,ch=Math.min(1.5,tl*0.6,
     :[[tb-0.2,ys],[top,ys],[top+lip,ys-lip],[top+lip+1.2,ys-lip],[top+lip+1.2,yo],[tb-0.2,yo]];
     res.push(a.map(([u,v])=>[u,s*v]));}
   return res;}
+// bøjle under bordet med klemme om kanten: stykker i profil (X ind under bordet, Y op; bordets underside ved Y=0)
+function underDeskPieces(S,P){const {tb,yo}=S,T=P.T,th=P.th,jaw=P.jaw,sq=P.sq;
+  const mp=pl=>pl.map(([u,v])=>[yo+v,-u]);
+  const base=mp([[0,-yo],[tb,-yo],[tb,yo],[0,yo]]),arms=armPolys(S,'lead').map(mp);
+  const front=[[-th,-tb],[0.1,-tb],[0.1,T+th],[-th,T+th]];
+  const top=[[-th,T],[jaw-1.5,T],[jaw,T+1.5],[jaw,T+th],[-th,T+th]];
+  const bump=[[2*yo-9,-0.1],[2*yo-2,-0.1],[2*yo-4,sq]];
+  return {base,arms,front,top,bump,T,th,jaw};}
 function buildStrip(P){
   const warn=[],S=stripDims(P),{c,Sw,Sh,tb,ys,yo,top,lip,tl}=S;
   const magOK=()=>{if(tb<magNeed(P)-1e-6){warn.push(`Bunden er for tynd til magneterne – øg bundtykkelsen til mindst ${f1n(magNeed(P))} mm.`);return false;}return true;};
   if(P.form==='clip'){
     // profil i print-XY: X = ud fra væggen (bund X∈[0,tb]), Y = på tværs af dåsen; ekstruderet i Z = bøjlens bredde
     const o=[],cw=P.cw;
+    if(P.mount==='desk'&&P.deskPos==='under'){
+      const U=underDeskPieces(S,P);
+      for(const pl of [U.base,...U.arms,U.front,U.top,U.bump])extrude(o,pl,[],0,cw,MAP_Z);
+      const view=[],L=P.sl;
+      for(const xo of [-(L/2-cw-10),L/2-cw-10])view.push(...mapPts(o,(X,Y,Z)=>[xo+Z-cw/2,X,Y]));
+      const ghost=[];box(ghost,-L/2-40,L/2+40,0.3,2*yo+40,0,U.T);box(ghost,-L/2,L/2,yo-P.sw/2,yo+P.sw/2,-(tb+P.sh),-tb);
+      return {view,ghost,print:layout(o,Math.max(1,P.count|0)),warn,dims:[cw,2*yo+U.th,tb+Sh+tl+U.T+U.th]};
+    }
     // bordkant: klemme bag bunden, bordpladens overside i flugt med bøjlens top
     let vb=-yo;
     if(P.mount==='desk'){const T=P.T,th=P.th,jaw=P.jaw,sq=P.sq,yd=yo-th-T;vb=Math.min(-yo,yd-th);
@@ -879,6 +895,21 @@ function buildStrip(P){
     const ghost=[];box(ghost,-L/2,L/2,-(tb+Sh-0.3),-tb,-P.sw/2,P.sw/2);
     if(P.mount==='desk')box(ghost,-L/2-40,L/2+40,0,60,yo-P.th-P.T,yo-P.th);
     return {view,ghost,print:layout(o,Math.max(1,P.count|0)),warn,dims:[cw,tb+Sh+tl+(P.mount==='desk'?P.jaw:0),yo-vb]};
+  }
+  if(P.form==='channel'&&P.mount==='desk'&&P.deskPos==='under'){
+    // under bordet: x = langs dåsen, y = ind under bordet, z = op. Printes stående med 45°-ribber under den øverste bøjle.
+    const o=[],cw=P.cw,L=P.sl+c,x0=-L/2,x1=L/2,U=underDeskPieces(S,P),Ht=top+tl;
+    const X=(pl,a,b)=>extrude(o,pl,[],a,b,MAP_X);
+    for(const [a,b] of [[x0,x0+cw],[x1-cw,x1]])for(const pl of [...U.arms,U.top,U.bump])X(pl,a,b);
+    X(U.base,x0,x1);X(U.front,x0,x1);
+    const xa=x0+cw;
+    // ribber: overkæben (ind over bordet), armene (ned) og kanterne
+    const W=(y0,y1,z0,z1,toZ)=>{const h=Math.abs(z1-z0);extrude(o,[[xa-0.1,toZ],[xa-0.1,toZ===z0?z1:z0],[xa+h,toZ]],[],-y1,-y0,(u,v,w)=>[u,-w,v]);};
+    W(-U.th,U.jaw,U.T,U.T+U.th,U.T);
+    for(const [y0,y1] of [[0,S.ta],[2*yo-S.ta,2*yo]])W(y0,y1,-Ht,-tb+0.1,-tb+0.1);
+    const print=mapPts(o,(x,y,z)=>[z,y,x1-x]);
+    const ghost=[];box(ghost,-L/2-40,L/2+40,0.3,2*yo+40,0,U.T);box(ghost,-P.sl/2,P.sl/2,yo-P.sw/2,yo+P.sw/2,-(tb+P.sh),-tb);
+    return {view:o,ghost,print,warn,dims:[L,2*yo+U.th,Ht+U.T+U.th],standing:true};
   }
   if(P.form==='channel'){
     // to bøjler forbundet af en bjælke bagpå. Bygget med bunden nedad: x = langs dåsen, y = på tværs, z = op fra bunden
@@ -1365,11 +1396,13 @@ TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
   {k:'shd',l:'Skruehovedets diameter',min:5,max:12,st:0.5,v:8,show:P=>P.mount==='screw'},
   {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
   {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
+  {k:'deskPos',l:'Placering',type:'select',opts:[['front','Foran bordkanten'],['under','Under bordet']],v:'front',show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'T',l:'Bordpladens tykkelse',min:8,max:55,st:0.5,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'th',l:'Klemmens tykkelse',min:2.5,max:6,st:0.1,v:3.5,show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'jaw',l:'Klemmens længde',min:10,max:40,st:1,v:20,show:P=>P.mount==='desk'&&P.form!=='stand'},
   {k:'sq',l:'Klemkraft',min:0.2,max:2,st:0.1,v:0.8,show:P=>P.mount==='desk'&&P.form!=='stand'},
-  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'},
+  {note:'Dåsen hænger foran bordkanten med toppen i flugt med bordpladen. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'&&P.deskPos!=='under'},
+  {note:'Dåsen hænger under bordet og klikkes op i bøjlen nedefra. Klemmen griber om kanten, og en lille knast inderst giver klemkraft. Den samlede holder printes stående.',show:P=>P.mount==='desk'&&P.form!=='stand'&&P.deskPos==='under'},
   {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:4,max:7,st:0.1,v:5,show:P=>P.mount==='skadis'&&P.form!=='stand'},
   {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)']],v:'side',show:P=>P.mount==='skadis'&&P.form==='clip'},
   {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.mount==='skadis'&&P.form!=='stand'},
