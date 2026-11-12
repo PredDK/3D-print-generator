@@ -5,103 +5,161 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>3D-print generator</title>
 <style>
-:root{--bg:#f4f2ee;--panel:#ffffff;--ink:#1d1d1b;--mute:#6d6a63;--line:#e3dfd7;--acc:#d9622b;--acc2:#2b7a78;color-scheme:light}
+:root{--bg:#f3f1ec;--panel:#fbfaf8;--card:#ffffff;--ink:#1c2321;--mute:#6a706c;--faint:#9aa09b;--line:#e6e2da;--line2:#efece6;
+  --acc:#e2622c;--acc-d:#c94f1c;--acc-l:#fdebe2;--teal:#2b7a78;--teal-l:#e3f0ef;--r:14px;color-scheme:light}
 *{box-sizing:border-box}
 button,input,select,textarea{color:var(--ink);background-color:#fff;font:inherit}
-html,body{margin:0;height:100%;font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+html,body{margin:0;height:100%;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
 #app{display:flex;height:100vh}
-#panel{width:340px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 28px}
-h1{font-size:18px;margin:0 0 2px;letter-spacing:-.01em}
-.sub{color:var(--mute);font-size:12.5px;margin:0 0 6px}
-.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:18px 0 8px;padding-top:12px;border-top:1px solid var(--line)}
-.row{margin:0 0 10px}
-.row label{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:3px;gap:8px}
-.row input[type=number]{width:64px;padding:3px 5px;border:1px solid var(--line);border-radius:6px;text-align:right}
-.row input[type=text]{width:100%;padding:5px 8px;border:1px solid var(--line);border-radius:6px}
-.row input[type=range]{width:100%;accent-color:var(--acc)}
-.row.chk label{justify-content:flex-start;cursor:pointer}
-.row.chk input{accent-color:var(--acc);width:16px;height:16px}
-.row select{padding:3px 6px;border:1px solid var(--line);border-radius:6px;max-width:190px}
-.note{font-size:12px;color:var(--mute);margin:-4px 0 10px}
-.stats{background:#faf8f4;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:14px}
-.stats div{display:flex;justify-content:space-between;padding:2px 0;gap:10px}
-.stats b{font-weight:600;text-align:right}
-.warn{background:#fff3e8;border:1px solid #f1c7a6;color:#8a3b10;border-radius:10px;padding:8px 12px;font-size:12.5px;margin-top:10px;display:none}
-button{cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#fff;padding:8px 12px}
+/* ---- panel ---- */
+#panel{width:384px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:0 16px 0;scrollbar-width:thin;scrollbar-color:#d8d3ca transparent}
+.brand{display:flex;align-items:center;gap:11px;padding:18px 2px 4px}
+.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,#ee7a45,var(--acc-d));display:grid;place-items:center;box-shadow:0 4px 12px rgba(226,98,44,.28),inset 0 1px 0 rgba(255,255,255,.25);flex:none}
+.logo svg{width:22px;height:22px}
+h1{font-size:17px;margin:0;letter-spacing:-.015em;font-weight:750}
+.sub{color:var(--mute);font-size:12.5px;margin:1px 0 0}
+#tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:14px 0 6px}
+#tabs button{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);background:var(--card);padding:9px 2px 7px;border-radius:12px;font-size:11.5px;font-weight:600;color:var(--mute);transition:all .15s ease;min-width:0}
+#tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#tabs button:hover{color:var(--ink);border-color:#d5cfc4;transform:translateY(-1px);box-shadow:0 3px 10px rgba(40,30,10,.06)}
+#tabs button.on{background:var(--acc-l);border-color:#f2b89c;color:var(--acc-d);box-shadow:inset 0 0 0 1px #f2b89c}
+/* ---- kort ---- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 4px;margin-top:10px;box-shadow:0 1px 2px rgba(40,30,10,.03)}
+.sec{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.09em;color:var(--teal);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.sec::after{content:"";flex:1;height:1px;background:var(--line2)}
+.row{margin:0 0 12px}
+.row label{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:5px;gap:10px}
+.row label>span{min-width:0}
+.row input[type=number]{width:66px;padding:3px 7px;border:1px solid var(--line);border-radius:8px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:12.5px;background:#f7f5f1;transition:border-color .15s}
+.row input[type=number]:focus,.row input[type=text]:focus,.row select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(226,98,44,.14)}
+.row input[type=text]{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px}
+.row select{appearance:none;-webkit-appearance:none;padding:5px 26px 5px 9px;border:1px solid var(--line);border-radius:9px;max-width:200px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a706c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;cursor:pointer;font-size:13px}
+/* skyder */
+.row input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0;cursor:pointer;--p:50%}
+.row input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--acc) var(--p),#e4dfd6 var(--p))}
+.row input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:#e4dfd6}
+.row input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--acc)}
+.row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:#fff;border:2px solid var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.15);transition:transform .1s}
+.row input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.row input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+/* kontakt */
+.row.chk label{justify-content:flex-start;cursor:pointer;gap:10px;margin-bottom:0}
+.row.chk input{-webkit-appearance:none;appearance:none;width:34px;height:20px;border-radius:20px;background:#dcd7ce;position:relative;flex:none;cursor:pointer;transition:background .15s;margin:0}
+.row.chk input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .15s}
+.row.chk input:checked{background:var(--teal)}
+.row.chk input:checked::after{left:16px}
+.note{font-size:12px;color:var(--mute);margin:-4px 0 12px;padding:7px 10px;background:#f6f4ef;border-radius:9px;line-height:1.4}
+/* footer med download */
+#act{position:sticky;bottom:0;z-index:5;margin:12px -16px 0;padding:12px 16px 14px;background:linear-gradient(180deg,rgba(251,250,248,0),var(--panel) 18px);}
+.warn{background:#fff4ec;border:1px solid #f4cdb2;color:#8a3b10;border-radius:12px;padding:9px 12px 9px 34px;font-size:12.5px;margin-bottom:8px;display:none;position:relative}
+.warn::before{content:"!";position:absolute;left:11px;top:9px;width:16px;height:16px;border-radius:50%;background:var(--acc);color:#fff;font-weight:800;font-size:11px;display:grid;place-items:center}
+button{cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#fff;padding:8px 12px;transition:all .15s}
+button:hover{border-color:#d0c9bd}
 button:disabled{opacity:.45;cursor:default}
-#dl{width:100%;margin-top:14px;background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;padding:11px}
-#dl:hover{filter:brightness(1.05)}
-#dlExtra{width:100%;margin-top:6px;font-size:13px}
-#msg{font-size:12.5px;color:var(--mute);margin-top:8px;min-height:1em}
-.tips{font-size:12.5px;color:var(--mute);margin-top:16px;padding-left:18px}
-.tips li{margin-bottom:4px}
-#planbox{margin-top:4px}
-#tabs{display:flex;gap:4px;background:#f1eee8;padding:4px;border-radius:12px;margin:10px 0 2px}
-#tabs{flex-wrap:wrap}
-#tabs button{flex:1 1 auto;border:0;background:transparent;padding:7px 4px;border-radius:9px;font-size:13px;font-weight:600;color:var(--mute)}
-#tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.planhint{font-size:12px;color:var(--mute);margin-bottom:6px}
+#dl{width:100%;background:linear-gradient(180deg,#ea6d36,var(--acc-d));border:0;color:#fff;font-weight:700;padding:13px;font-size:14.5px;border-radius:12px;box-shadow:0 6px 16px rgba(226,98,44,.3),inset 0 1px 0 rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;gap:9px}
+#dl::before{content:"";width:17px;height:17px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11M7 10l5 5 5-5M5 20h14'/%3E%3C/svg%3E") center/contain no-repeat}
+#dl:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 8px 20px rgba(226,98,44,.36)}
+#dl:active{transform:none}
+#dlExtra{width:100%;margin-top:6px;font-size:13px;font-weight:600}
+#msg{font-size:12.5px;color:var(--mute);margin-top:6px;min-height:1em;text-align:center}
+.tips{font-size:12.5px;color:var(--mute);margin:14px 0 26px;padding:12px 14px 12px 30px;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.tips li{margin-bottom:5px}.tips li::marker{color:var(--acc)}
+.tipshead{font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.09em;color:var(--teal);margin:18px 2px 0}
+#planbox{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.planhint{font-size:12px;color:var(--mute);margin-bottom:8px}
 #plan{width:100%;display:block;border:1px solid var(--line);border-radius:10px;background:#faf8f4;touch-action:none;cursor:default}
-#plan:focus{outline:2px solid #2f7fc8;outline-offset:1px}
-.pbtns{display:flex;gap:6px;margin-top:6px}.pbtns button{flex:1;font-size:12.5px;padding:6px}
+#plan:focus{outline:2px solid var(--acc);outline-offset:1px}
+.pbtns{display:flex;gap:6px;margin-top:8px}.pbtns button{flex:1;font-size:12.5px;padding:7px}
 #selrow{display:none;justify-content:space-between;align-items:center;font-size:12.5px;margin-top:8px}
-#selrow input{width:70px;padding:2px 5px;border:1px solid var(--line);border-radius:6px;text-align:right}
+#selrow input{width:70px;padding:3px 6px;border:1px solid var(--line);border-radius:8px;text-align:right}
 .hl{margin-top:4px}
-.hhead,.hrow{display:grid;grid-template-columns:70px 1fr 48px 26px;gap:5px;align-items:center;margin-bottom:5px}
+.hhead,.hrow{display:grid;grid-template-columns:72px 1fr 50px 28px;gap:5px;align-items:center;margin-bottom:5px}
 .hhead{font-size:11px;color:var(--mute)}
-.hrow select{padding:3px 2px;border:1px solid var(--line);border-radius:6px;font-size:12.5px}
+.hrow select{padding:4px 2px;border:1px solid var(--line);border-radius:8px;font-size:12.5px}
 .hrow .sz{display:flex;align-items:center;gap:3px}.hrow .sz i{font-style:normal;color:var(--mute)}
-.hrow input{width:100%;min-width:0;padding:3px 4px;border:1px solid var(--line);border-radius:6px;text-align:right;font-size:12.5px}
-.hrow .del{padding:2px 0;font-size:12px;border-radius:6px}
-.addhole{width:100%;font-size:12.5px;padding:6px;margin-top:2px}
-.saverow{display:flex;gap:6px;margin-bottom:6px}
-.saverow input,.saverow select{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
-.saverow button{font-size:12.5px;padding:6px 10px;white-space:nowrap}
-#pasteBox textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px;font-size:12px;font-family:ui-monospace,monospace}
-#view{position:relative;flex:1;min-width:0}
+.hrow input{width:100%;min-width:0;padding:4px 5px;border:1px solid var(--line);border-radius:8px;text-align:right;font-size:12.5px}
+.hrow .del{padding:3px 0;font-size:12px;border-radius:8px;color:var(--mute)}
+.hrow .del:hover{color:var(--acc-d);border-color:#f2b89c}
+.addhole{width:100%;font-size:12.5px;padding:7px;margin-top:2px;border-style:dashed;color:var(--teal);font-weight:600}
+.savecard{margin-top:10px}
+.saverow{display:flex;gap:6px;margin-bottom:8px}
+.saverow input,.saverow select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:9px}
+.saverow button{font-size:12.5px;padding:7px 11px;white-space:nowrap;font-weight:600}
+#pasteBox textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:7px;font-size:12px;font-family:ui-monospace,monospace}
+/* ---- 3D-visning ---- */
+#view{position:relative;flex:1;min-width:0;background:radial-gradient(ellipse at 50% 38%,#fdfcfa 0%,#f1eee8 55%,#e6e1d8 100%)}
 #c{width:100%;height:100%;display:block;touch-action:none}
-#hud{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 4px 18px rgba(0,0,0,.06);white-space:nowrap}
-#hud input{width:200px;accent-color:var(--acc2)}
-#hud .lbl{font-size:13px}
-#hud .val{font-variant-numeric:tabular-nums;width:40px;text-align:right;font-weight:600}
-#legend{position:absolute;top:14px;right:16px;font-size:12px;color:var(--mute);background:rgba(255,255,255,.85);padding:6px 10px;border-radius:8px}
+.glass{background:rgba(255,255,255,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 24px rgba(40,30,10,.08),0 0 0 1px rgba(40,30,10,.04)}
+#info{position:absolute;top:16px;left:16px;border-radius:16px;padding:12px 16px 10px;min-width:220px;max-width:330px}
+#info h2{margin:0 0 6px;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+#info h2 svg{width:20px;height:20px;stroke:var(--acc);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.stats{font-size:12.5px}
+.stats div{display:flex;justify-content:space-between;padding:3px 0;gap:14px;border-top:1px solid rgba(40,30,10,.06)}
+.stats span{color:var(--mute)}.stats b{font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
+#vtools{position:absolute;top:16px;right:16px;display:flex;gap:6px;border-radius:14px;padding:5px}
+#vtools button{border:0;background:transparent;padding:6px 10px;font-size:12.5px;font-weight:600;color:var(--mute);border-radius:10px;display:flex;align-items:center;gap:6px}
+#vtools button:hover{background:rgba(40,30,10,.06);color:var(--ink)}
+#vtools svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#hint{position:absolute;right:18px;bottom:16px;font-size:11.5px;color:var(--faint);pointer-events:none}
+#hud{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);border-radius:14px;padding:9px 14px;display:flex;gap:12px;align-items:center;white-space:nowrap}
+#hud input{width:200px;accent-color:var(--teal)}
+#hud .lbl{font-size:13px;font-weight:600}
+#hud .val{font-variant-numeric:tabular-nums;width:40px;text-align:right;font-weight:700}
+#hud button{font-weight:600}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 10px;vertical-align:-1px}
-@media (max-width:760px){#app{flex-direction:column-reverse;height:auto}#panel{width:100%;border-right:0}#view{height:60vh;flex:none}#hud input{width:120px}}
+@media (max-width:860px){
+  #app{flex-direction:column-reverse;height:auto}
+  #panel{width:100%;border-right:0;border-top:1px solid var(--line);overflow:visible}
+  #view{height:46vh;flex:none;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line)}
+  #tabs{grid-template-columns:repeat(5,minmax(0,1fr))}
+  #info{top:10px;left:10px;padding:9px 12px 7px;min-width:0;max-width:62vw}
+  #info .stats div:nth-child(n+3){display:none}
+  #vtools{top:10px;right:10px}#vtools button span{display:none}
+  #hud{bottom:10px;padding:7px 10px}#hud input{width:110px}
+  #hint{display:none}
+}
 </style>
 </head>
 <body>
 <div id="app">
   <aside id="panel">
-    <h1>3D-print generator</h1>
-    <p class="sub">Parametriske modeller til 3D-print. Alle mål i mm.</p>
+    <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.8 20 7.3v9.4l-8 4.5-8-4.5V7.3z"/><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"/></svg></div>
+      <div><h1>3D-print generator</h1><p class="sub">Parametriske modeller til 3D-print · alle mål i mm</p></div></div>
     <div id="tabs"></div>
     <div id="controls"></div>
     <div id="planbox">
+      <div class="sec">Skillevægge</div>
       <div class="planhint" id="planhint"></div>
       <canvas id="plan" tabindex="0"></canvas>
       <div class="pbtns"><button id="addh">+ Væg</button><button id="delw">Slet valgt</button></div>
       <div id="selrow"><span id="sellab"></span><input id="selval" type="number" step="0.5"></div>
-      <button id="even" style="width:100%;margin-top:6px;font-size:12.5px;padding:6px">Fordel jævnt</button>
+      <button id="even" style="width:100%;margin-top:6px;font-size:12.5px;padding:7px">Fordel jævnt</button>
     </div>
-    <div class="warn" id="warn"></div>
-    <div class="stats" id="stats"></div>
-    <button id="dl">Download STL</button>
-    <button id="dlExtra"></button>
-    <div id="msg"></div>
+    <div id="act">
+      <div class="warn" id="warn"></div>
+      <button id="dl">Download STL</button>
+      <button id="dlExtra"></button>
+      <div id="msg"></div>
+    </div>
 
-    <div class="sec">Gem og del</div>
-    <div class="saverow"><input id="saveName" placeholder="Navn, fx “Skruer”"><button id="saveBtn">Gem</button></div>
-    <div class="saverow"><select id="loadSel"></select><button id="delSave">Slet</button></div>
-    <div class="saverow"><button id="copyCode" style="flex:1">Kopiér delekode</button><button id="showPaste" style="flex:1">Indlæs delekode</button></div>
-    <div id="pasteBox" style="display:none"><textarea id="codeTa" rows="3" placeholder="Indsæt delekode her"></textarea><button id="loadCode" style="width:100%;margin-top:4px;font-size:12.5px;padding:6px">Indlæs</button></div>
-    <div class="note" id="saveMsg" style="margin-top:4px"></div>
-
+    <div class="card savecard">
+      <div class="sec">Gem og del</div>
+      <div class="saverow"><input id="saveName" placeholder="Navn, fx “Skruer”"><button id="saveBtn">Gem</button></div>
+      <div class="saverow"><select id="loadSel"></select><button id="delSave">Slet</button></div>
+      <div class="saverow"><button id="copyCode" style="flex:1">Kopiér delekode</button><button id="showPaste" style="flex:1">Indlæs delekode</button></div>
+      <div id="pasteBox" style="display:none;margin-bottom:8px"><textarea id="codeTa" rows="3" placeholder="Indsæt delekode her"></textarea><button id="loadCode" style="width:100%;margin-top:4px;font-size:12.5px;padding:7px">Indlæs</button></div>
+      <div class="note" id="saveMsg" style="margin:0 0 10px;background:none;padding:0"></div>
+    </div>
+    <div class="tipshead">Print-tips</div>
     <ul class="tips" id="tips"></ul>
   </aside>
   <main id="view">
     <canvas id="c"></canvas>
-    
-    <div id="hud"><span class="lbl" id="hudlbl">Åbning</span><input id="ang" type="range" min="0" max="180" step="1" value="110"><span class="val" id="angv">110°</span><button id="pp" style="padding:5px 10px;font-size:12.5px">Printposition</button></div>
+    <div id="info" class="glass"><h2 id="infoT"></h2><div class="stats" id="stats"></div></div>
+    <div id="vtools" class="glass"><button id="vFrame" title="Centrér modellen"><svg viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/><circle cx="12" cy="12" r="2.5"/></svg><span>Centrér</span></button></div>
+    <div id="hint">Træk for at dreje · scroll eller knib for at zoome</div>
+    <div id="hud" class="glass"><span class="lbl" id="hudlbl">Åbning</span><input id="ang" type="range" min="0" max="180" step="1" value="110"><span class="val" id="angv">110°</span><button id="pp" style="padding:5px 10px;font-size:12.5px">Printposition</button></div>
   </main>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1129,6 +1187,147 @@ function buildStrip(P){
   return {view,ghost,print:layout(o,ws?1:Math.max(1,P.count|0)),warn,dims:[w,xEnd-x0+(dk?P.th:0),mxy+(dk?P.T+P.th:0)],wall:sk,skTop:-x0,screwX,x0,xEnd};
 }
 
+
+// ================= FÆLLES: RINGE / PROFIL-LOFT =================
+// lukket skal ud fra en kæde af (inset, z): ringe af afrundede rektangler med samme antal punkter.
+// Kæden går fra bunden udvendigt, op, over kanten og ned indvendigt til bunden af hulrummet.
+function ringRR(W,D,R,ins,seg){return rr(W-2*ins,D-2*ins,Math.max(0.3,R-ins),seg);}
+function loftChain(o,W,D,R,chain,seg=8){
+  const rings=chain.map(([i,z])=>ringRR(W,D,R,i,seg).map(([x,y])=>[x,y,z]));
+  const n=rings[0].length,t=[];
+  const fan=(ring,up)=>{let cx=0,cy=0;ring.forEach(p=>{cx+=p[0];cy+=p[1];});cx/=n;cy/=n;const c=[cx,cy,ring[0][2]];
+    for(let k=0;k<n;k++){const a=ring[k],b=ring[(k+1)%n];if(up)T(t,c,a,b);else T(t,c,b,a);}};
+  fan(rings[0],false);
+  for(let r=0;r+1<rings.length;r++){const A=rings[r],B=rings[r+1];
+    for(let k=0;k<n;k++){const k1=(k+1)%n;Q(t,A[k],A[k1],B[k1],B[k]);}}
+  fan(rings[rings.length-1],true);
+  // orientering: positivt volumen = normaler udad
+  let v=0;for(let i=0;i<t.length;i+=9){const ax=t[i],ay=t[i+1],az=t[i+2],bx=t[i+3],by=t[i+4],bz=t[i+5],cx=t[i+6],cy=t[i+7],cz=t[i+8];
+    v+=ax*(by*cz-bz*cy)-ay*(bx*cz-bz*cx)+az*(bx*cy-by*cx);}
+  if(v<0)for(let i=0;i<t.length;i+=9){for(let j=0;j<3;j++){const a=t[i+3+j];t[i+3+j]=t[i+6+j];t[i+6+j]=a;}}
+  for(const x of t)o.push(x);
+}
+// sammenhængende løb af "blæk"-pixels (modsat textFill)
+function textInk(tb,cb){const open=new Map();
+  for(let r=0;r<=tb.rows;r++){const runs=new Set();
+    if(r<tb.rows){let c=0;while(c<tb.cols){if(!tb.data[r*tb.cols+c]){c++;continue;}let c1=c;while(c1<tb.cols&&tb.data[r*tb.cols+c1])c1++;runs.add(c+'-'+c1);c=c1;}}
+    for(const k of [...open.keys()])if(!runs.has(k)){const o=open.get(k);cb(o.c0,o.c1,o.r0,r);open.delete(k);}
+    for(const k of runs)if(!open.has(k)){const [c0,c1]=k.split('-').map(Number);open.set(k,{c0,c1,r0:r});}}
+}
+
+// ================= STABELBARE BAKKER =================
+function buildBin(P){
+  const warn=[],o=[],W=P.W,D=P.D,t=P.t,R=Math.max(0.5,Math.min(P.R,W/2-1,D/2-1)),c=P.c,st=!!P.stack;
+  const lipH=st?P.lipH:0,H=P.H,Htot=H+lipH,fb=P.fb,zf=lipH+fb;
+  if(zf>Htot-3)warn.push('Bakken er for lav – gør den højere.');
+  const iF=t+c;
+  const chain=st?[[iF,0],[iF,lipH],[0,lipH+iF],[0,Htot],[t,Htot],[t,zf]]:[[0,0],[0,Htot],[t,Htot],[t,zf]];
+  loftChain(o,W,D,R,chain);
+  // skillevægge
+  const iw=W-2*t,id=D-2*t,cols=Math.max(1,P.cols|0),rows=Math.max(1,P.rows|0),dt=P.dt;
+  const dTop=Htot-(st?lipH+0.6:0)-P.dlow;
+  if(dTop>zf+1){
+    for(let i=1;i<cols;i++){const x=-iw/2+iw*i/cols;box(o,x-dt/2,x+dt/2,-id/2-Math.min(0.3,t/2),id/2+Math.min(0.3,t/2),zf-0.3,dTop);}
+    for(let j=1;j<rows;j++){const y=-id/2+id*j/rows;box(o,-iw/2-Math.min(0.3,t/2),iw/2+Math.min(0.3,t/2),y-dt/2,y+dt/2,zf-0.3,dTop);}
+  }
+  const cw=(iw-(cols-1)*dt)/cols,cd=(id-(rows-1)*dt)/rows;
+  if(cw<8||cd<8)warn.push('Rummene bliver meget små – færre rum eller større bakke.');
+  return {tris:o,warn,Htot,cw,cd,cells:cols*rows,lipH};
+}
+
+// ================= SKILTE =================
+function buildSign(P,tb){
+  const warn=[],o=[],T=P.T,pad=P.pad,mt=P.mount,shelf=mt==='shelf',raised=P.style==='raised'&&!shelf;
+  const td=raised?P.th:Math.min(P.th,T-0.8);
+  let tw=tb?tb.cols*tb.res:0,th=tb?tb.rows*tb.res:0;
+  let W=P.autoW&&tb?tw+2*pad:P.W,H=P.H;
+  const scr=mt==='screw',ex=scr?P.shd+5:0;W+=2*ex;
+  if(shelf){const need=P.Ts+2*P.ta+1;if(H<need){H=need;warn.push(`Skiltet er gjort ${f1n(H)} mm højt, så klemmen kan være der.`);}}
+  const R=Math.max(0,Math.min(P.R,W/2-0.5,H/2-0.5));
+  const out=R<0.05?[[-W/2,-H/2],[W/2,-H/2],[W/2,H/2],[-W/2,H/2]]:rr(W,H,R,8);
+  if(tb&&tw>W-2*ex-2*0.8+1e-6)warn.push('Teksten er bredere end skiltet – gør skiltet bredere eller teksten mindre.');
+  const x0=-tw/2,yt=th/2;
+  const feats=[];
+  // beslag i bagsiden
+  let back=[],backTop=false;
+  if(scr){for(const s of [-1,1])back.push(...screwFeats(s*(W/2-ex/2),0,P.sd,P.shd,T,'s'+(s>0?1:0)));}
+  if(mt==='magnet'){if(T<magNeed(P)+(raised?0:td)-1e-6)warn.push(`Skiltet er for tyndt til magneterne – gør det mindst ${f1n(magNeed(P)+(raised?0:td))} mm tykt.`);
+    else{const n=W>P.magD*4+20?2:1,xs=n===2?[-W/4,W/4]:[0];back=magFeats(xs.map(x=>[x,0]),P);}}
+  if(!tb&&!scr&&mt!=='magnet'){prism(o,out,0,T);}
+  if(shelf){
+    // printes med forsiden nedad: forsiden er z=0, bagsiden z=T. Fordybet tekst åben mod z=0.
+    if(tb)layered(o,out,[{d:td,hole:[[x0,yt-th],[x0+tw,yt-th],[x0+tw,yt],[x0,yt]]}],0,T,false);else prism(o,out,0,T);
+    if(tb)textFill(tb,(c0,c1,r0,r1)=>box(o,x0+c0*tb.res,x0+c1*tb.res,yt-r1*tb.res,yt-r0*tb.res,0,td));
+    const Ts=P.Ts,ta=P.ta,J=P.jaw,sq=P.sq,yb=-Ts/2;
+    // to arme (finner) der rejser sig fra bagsiden; den øverste ligger oven på hylden, den nederste griber under
+    const arm=(y0,y1,bump)=>{const pr=[[y0,T-0.1],[y1,T-0.1],[y1,T+J],[y0,T+J]];
+      extrude(o,pr,[],-W/2+Math.min(R,3),W/2-Math.min(R,3),MAP_X);
+      if(bump&&sq>0.05){const by=bump>0?y1:y0,s=bump;const b=[[by,T+J-6],[by+s*sq,T+J-3],[by,T+J-0.5]];if(s>0)b.reverse();extrude(o,b,[],-W/2+Math.min(R,3),W/2-Math.min(R,3),MAP_X);}};
+    arm(yb+Ts,yb+Ts+ta,0);arm(yb-ta,yb,1);
+    return {tris:o,warn,W,H,T:T+J,face:'down',shelfBand:[yb,yb+Ts]};
+  }
+  // forsiden opad (z=T)
+  const recFeats=!raised&&tb?[{d:td,hole:[[x0,yt-th],[x0+tw,yt-th],[x0+tw,yt],[x0,yt]]}]:[];
+  if(back.length||recFeats.length){
+    if(back.length&&recFeats.length){const zb=Math.max(...back.map(f=>f.d))+0.4;
+      layered(o,out,back,0,zb,false);layered(o,out,recFeats,zb,T,true);}
+    else if(back.length)layered(o,out,back,0,T,false);
+    else layered(o,out,recFeats,0,T,true);
+  }else if(tb||scr||mt==='magnet')prism(o,out,0,T);
+  if(tb&&!raised)textFill(tb,(c0,c1,r0,r1)=>box(o,x0+c0*tb.res,x0+c1*tb.res,yt-r1*tb.res,yt-r0*tb.res,T-td,T));
+  if(tb&&raised)textInk(tb,(c0,c1,r0,r1)=>box(o,x0+c0*tb.res,x0+c1*tb.res,yt-r1*tb.res,yt-r0*tb.res,T-0.01,T+td));
+  if(raised&&P.frame){const fw=P.fw,FW=W-2*ex,Rf=scr?Math.min(R,2):R;
+    const sq=(w,h)=>[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]];
+    const fo=Rf<0.05?sq(FW,H):rr(FW,H,Rf,8),fi=Rf-fw<0.05?sq(FW-2*fw,H-2*fw):rr(FW-2*fw,H-2*fw,Rf-fw,8);
+    if(scr){const fo2=rr(FW-1,H-1,Math.max(0.3,Rf),8),fi2=rr(FW-1-2*fw,H-1-2*fw,Math.max(0.3,Rf-fw),8);extrude(o,fo2,[fi2],T-0.01,T+td,MAP_Z);}
+    else extrude(o,fo,[fi],T-0.01,T+td,MAP_Z);}
+  return {tris:o,warn,W,H,T:T+(raised?td:0),face:'up'};
+}
+
+// ================= BATTERIHOLDER =================
+const BATT={
+  AA:{n:'AA',d:14.5,L:50.5},AAA:{n:'AAA',d:10.5,L:44.5},C:{n:'C',d:26.2,L:50},D:{n:'D',d:34.2,L:61.5},
+  b18650:{n:'18650',d:18.6,L:65.2},b9V:{n:'9V',rect:[26.5,17.5],L:48.5},CR2032:{n:'CR2032',coin:[20,3.2],L:20},CR2025:{n:'CR2025',coin:[20,2.5],L:20}};
+function battCells(P){const list=[];for(const k of Object.keys(BATT)){const n=Math.max(0,(P['n_'+k]|0));if(n)list.push({k,n,b:BATT[k]});}return list;}
+function buildBattery(P,labels){
+  const warn=[],o=[],cl=P.cl,g=P.hg,e=P.edge,pct=P.pct/100,list=battCells(P);
+  if(!list.length)warn.push('Vælg mindst ét batteri.');
+  const maxW=P.W-2*e,rows=[];
+  list.forEach((it,gi)=>{const b=it.b,lb=P.lbl&&labels?labels[gi]:null,lw=lb?lb.cols*lb.res:0;
+    const cw=b.d?b.d+cl:b.rect?b.rect[0]+cl:b.coin[0]+cl,ch=b.d?b.d+cl:b.rect?b.rect[1]+cl:b.coin[1]+cl+0.2;
+    const dep=b.coin?Math.min(b.L*0.6,12):b.L*pct;
+    let cur={cells:[],w:0,h:ch,dep,lb,lw,first:true};
+    const start=()=>{if(cur.lb&&cur.first){cur.w=lw+g;}};start();
+    for(let i=0;i<it.n;i++){const add=(cur.cells.length?g:0)+cw;
+      if(cur.cells.length&&cur.w+add>maxW){rows.push(cur);cur={cells:[],w:lb?lw+g:0,h:ch,dep,lb,lw,first:false};}
+      cur.w+=(cur.cells.length?g:0)+cw;cur.cells.push({w:cw,h:ch,b});}
+    rows.push(cur);});
+  for(const r of rows)r.h=Math.max(r.h,r.first&&r.lb?r.lb.rows*r.lb.res:0);
+  const needW=Math.max(10,...rows.map(r=>r.w))+2*e,needD=rows.reduce((a,r)=>a+r.h,0)+g*Math.max(0,rows.length-1)+2*e;
+  const W=Math.max(needW,20),D=Math.max(needD,15);
+  const depMax=Math.max(5,...rows.map(r=>r.dep)),H=Math.max(depMax+P.fb,P.Hmin||0);
+  const R=Math.max(0,Math.min(P.R,W/2-1,D/2-1,3.4*(e-0.6)));
+  const out=R<0.05?[[-W/2,-D/2],[W/2,-D/2],[W/2,D/2],[-W/2,D/2]]:rr(W,D,R,8);
+  const feats=[],fills=[],td=0.6;let y=D/2-e,count=0;
+  rows.forEach((r,ri)=>{let x=-W/2+e;const cy=y-r.h/2;
+    if(r.lb){if(r.first){const lw=r.lw,lh=r.lb.rows*r.lb.res,yt=cy+lh/2;
+        feats.push({d:td,hole:[[x,yt-lh],[x+lw,yt-lh],[x+lw,yt],[x,yt]],g:'l'+ri});fills.push({lb:r.lb,x0:x,yt});}
+      x+=r.lw+g;}
+    for(const c of r.cells){const cx=x+c.w/2,b=c.b;let hole;
+      if(b.d)hole=circ(cx,cy,c.w/2,Math.max(32,Math.round(c.w*4)));
+      else{const rr_=b.rect?Math.min(2,c.h/2-0.01):Math.min(0.8,c.h/2-0.01);hole=rr(c.w,c.h,rr_,6).map(([a,bb])=>[a+cx,bb+cy]);}
+      feats.push({d:r.dep,hole,g:'b'+count});count++;x+=c.w+g;}
+    y-=r.h+g;});
+  // fingergreb: rille på tværs af hver række (valgfri) – udelades for at holde det enkelt
+  const fl=H-depMax;let mag=false;
+  if(P.mag){if(fl<magNeed(P)-1e-6)warn.push(`Bunden er for tynd til magneterne – øg bundtykkelsen til mindst ${f1n(magNeed(P))} mm.`);
+    else{const mr=P.magD/2+0.15,mx=W/2-mr-2.5,my=D/2-mr-2.5;layered(o,out,magFeats([[mx,my],[-mx,my],[-mx,-my],[mx,-my]],P),0,fl,false);mag=true;}}
+  if(!mag)prism(o,out,0,fl);
+  layered(o,out,feats,fl,H,true);
+  for(const f of fills)textFill(f.lb,(c0,c1,r0,r1)=>box(o,f.x0+c0*f.lb.res,f.x0+c1*f.lb.res,f.yt-r1*f.lb.res,f.yt-r0*f.lb.res,H-td,H));
+  return {tris:o,warn,W,D,H,count,rows,list};
+}
+
 /*GEOM-END*/
 // ---------- ZIP (uden komprimering, flere filer) ----------
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
@@ -1332,13 +1531,16 @@ const HOLDER_PRESETS={
   pens:{holes:[{s:'c',a:9,b:3,n:8}],sor:'along',tray:true},
   knives:{holes:[{s:'s',a:42,b:3.5,n:3},{s:'s',a:28,b:3,n:2}],sor:'out',tray:false,wg:4,wh:50},
   mixed:{holes:[{s:'c',a:22,b:3,n:1},{s:'c',a:12,b:3,n:3},{s:'s',a:30,b:4,n:1}],sor:'along',tray:true},
+  drivers:{holes:[{s:'c',a:7,b:3,n:3},{s:'c',a:9,b:3,n:3},{s:'c',a:11,b:3,n:2}],sor:'along',tray:false,mount:'skadis',wg:6,hgap:8,wh:58,taper:8},
+  pliers:{holes:[{s:'s',a:34,b:12,n:3}],sor:'out',tray:false,mount:'skadis',wg:5,hgap:10,wh:58,taper:0},
+  workshop:{holes:[{s:'s',a:34,b:12,n:2},{s:'c',a:8,b:3,n:3},{s:'c',a:11,b:3,n:3}],sor:'out',tray:false,mount:'skadis',wg:5,hgap:8,wh:58,taper:6},
 };
 TOOLS.push({id:'holder',name:'Holder',dl:'Download STL',
  init:{},
  defs:[
   {sec:'Type'},
   {k:'mode',l:'Holder',type:'select',opts:[['wall','Til væg / SKÅDIS'],['block','Stående blok']],v:'wall'},
-  {k:'preset',l:'Forslag',type:'select',opts:[['','Vælg forslag …'],['tb','4 tandbørster'],['tbp','4 tandbørster + tandpasta'],['knives','Knive (5 slidser)'],['tools','6 skruetrækkere'],['pens','8 pensler/kuglepenne'],['mixed','Blandede huller']],v:'',noGeom:true},
+  {k:'preset',l:'Forslag',type:'select',opts:[['','Vælg forslag …'],['tb','4 tandbørster'],['tbp','4 tandbørster + tandpasta'],['knives','Knive (5 slidser)'],['drivers','Skruetrækkere (8, tre størrelser)'],['pliers','Tænger (3 slidser)'],['workshop','Værksted: tænger + skruetrækkere'],['tools','6 skruetrækkere (ens)'],['pens','8 pensler/kuglepenne'],['mixed','Blandede huller']],v:'',noGeom:true},
   {sec:'Huller'},
   {k:'holes',l:'Hvert hul eller hver gruppe af ens huller',type:'holes',v:[{s:'c',a:14,b:3,n:4}]},
   {k:'sor',l:'Slidser vender',type:'select',opts:[['along','Langs væggen'],['out','Ud fra væggen']],v:'along',show:P=>P.holes.some(h=>h.s==='s')},
@@ -1548,6 +1750,115 @@ TOOLS.push({id:'lys',name:'Lys',dl:'Download STL',
    'Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt – brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'],
 });
 
+
+// BAKKER
+TOOLS.push({id:'bakke',name:'Bakker',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Mål (udvendigt)'},
+  {k:'W',l:'Bredde',min:20,max:300,st:1,v:120},
+  {k:'D',l:'Dybde',min:20,max:300,st:1,v:80},
+  {k:'H',l:'Højde (uden fod)',min:10,max:150,st:1,v:40},
+  {sec:'Rum'},
+  {k:'cols',l:'Rum i bredden',min:1,max:10,st:1,v:3},
+  {k:'rows',l:'Rum i dybden',min:1,max:10,st:1,v:2},
+  {k:'dt',l:'Skillevæggenes tykkelse',min:0.8,max:4,st:0.1,v:1.2},
+  {k:'dlow',l:'Skillevægge lavere end kanten',min:0,max:40,st:0.5,v:0},
+  {sec:'Bakke'},
+  {k:'t',l:'Vægtykkelse',min:0.8,max:4,st:0.1,v:1.6},
+  {k:'fb',l:'Bundtykkelse',min:0.8,max:5,st:0.1,v:1.2},
+  {k:'R',l:'Hjørneradius',min:0.5,max:30,st:0.5,v:5},
+  {sec:'Stabling'},
+  {k:'stack',l:'Stabelbar (fod der passer ned i bakken under)',type:'check',v:true},
+  {k:'lipH',l:'Fodens højde',min:1.5,max:8,st:0.5,v:3,show:P=>P.stack},
+  {k:'c',l:'Frigang',min:0.1,max:0.8,st:0.05,v:0.25,show:P=>P.stack},
+  {note:'Foden er lidt mindre end bakkens åbning og har en skrå overgang, så bakkerne centrerer sig selv, når de stables. Lav bakker med samme bredde og dybde, så passer de alle oven i hinanden.',show:P=>P.stack},
+ ],
+ make(P){return buildBin(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);if(P.stack){const dz=m.Htot-m.lipH-P.c,o=m.tris.map((v,i)=>i%3===2?v+dz:v);S.mesh(o,0x2b7a78,null,true);}},
+ files(m,P){return [{name:`bakke_${P.cols}x${P.rows}-rum_${P.W}x${P.D}x${f1(m.Htot)}`,tris:m.tris}];},
+ stats(m,P){return [['Mål (B × D × H)',[P.W,P.D,m.Htot].map(f1).join(' × ')],['Rum',m.cells],['Hvert rum',`${f1(m.cw)} × ${f1(m.cd)} mm`]];},
+ tips:P=>['Printes som den står, med åbningen opad – ingen support.',...(P.stack?['Den skrå fod printer fint uden support. Den gennemsigtige bakke i visningen viser, hvordan næste bakke sidder.']:[]),'En vægtykkelse på 2 × din linjebredde (fx 0,8 eller 1,6 mm med 0,4-dyse) giver de pæneste vægge.'],
+});
+
+// SKILTE
+TOOLS.push({id:'skilt',name:'Skilte',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Tekst'},
+  {k:'text',l:'Tekst',type:'text',max:40,ph:'fx SKRUER',v:'SKRUER'},
+  {k:'size',l:'Tekststørrelse (versalhøjde)',min:3,max:40,st:0.5,v:9},
+  {k:'style',l:'Tekst',type:'select',opts:[['raised','Hævet'],['recessed','Fordybet']],v:'raised',show:P=>P.mount!=='shelf'},
+  {k:'th',l:P=>P.style==='raised'&&P.mount!=='shelf'?'Tekstens højde':'Tekstens dybde',min:0.4,max:2,st:0.1,v:0.8},
+  {sec:'Skilt'},
+  {k:'autoW',l:'Bredde efter teksten',type:'check',v:true},
+  {k:'W',l:'Bredde',min:15,max:250,st:1,v:80,show:P=>!P.autoW},
+  {k:'H',l:'Højde',min:8,max:100,st:0.5,v:20},
+  {k:'pad',l:'Kant omkring teksten',min:1,max:20,st:0.5,v:4},
+  {k:'T',l:'Tykkelse',min:1.2,max:8,st:0.1,v:2.4},
+  {k:'R',l:'Hjørneradius',min:0,max:20,st:0.5,v:3},
+  {k:'frame',l:'Hævet ramme',type:'check',v:true,show:P=>P.style==='raised'&&P.mount!=='shelf'},
+  {k:'fw',l:'Rammens bredde',min:0.6,max:4,st:0.1,v:1.2,show:P=>P.style==='raised'&&P.mount!=='shelf'&&P.frame},
+  {sec:'Montering'},
+  {k:'mount',l:'Montering',type:'select',opts:[['none','Ingen / dobbeltklæbende tape'],['magnet','Magneter'],['screw','Skruer (2)'],['shelf','Klemme på hyldekant']],v:'none'},
+  {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
+  {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
+  {k:'sd',l:'Skruediameter',min:2,max:6,st:0.5,v:3.5,show:P=>P.mount==='screw'},
+  {k:'shd',l:'Skruehovedets diameter',min:4,max:12,st:0.5,v:7,show:P=>P.mount==='screw'},
+  {k:'Ts',l:'Hyldens tykkelse',min:4,max:40,st:0.5,v:18,show:P=>P.mount==='shelf'},
+  {k:'ta',l:'Armenes tykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.mount==='shelf'},
+  {k:'jaw',l:'Armenes længde',min:8,max:40,st:1,v:15,show:P=>P.mount==='shelf'},
+  {k:'sq',l:'Klemkraft',min:0,max:2,st:0.1,v:0.6,show:P=>P.mount==='shelf'},
+  {note:'Skiltet sættes på forkanten af hylden: den øverste arm ligger på hylden, den nederste griber under. Det printes med forsiden nedad, så teksten bliver fordybet og forsiden helt glat.',show:P=>P.mount==='shelf'},
+ ],
+ after(T){const P=T.P;if(P.mount==='shelf'&&P.H<P.Ts+2*P.ta+1)T.setCtl('H',Math.ceil(P.Ts+2*P.ta+1));if(P.mount==='magnet'){const need=Math.ceil((P.magH+1+(P.style==='raised'?0:P.th)+0.4)*10)/10;if(P.T<need)T.setCtl('T',need);}},
+ make(P){const scr=P.mount==='screw'?2*(P.shd+5):0;
+   const tb=textBitmap(P.text,P.size,P.autoW?400:Math.max(4,P.W-2*P.pad),Math.max(2,P.H-2*P.pad));
+   const m=buildSign(P,tb);if((P.text||'').trim()&&!tb)m.warn.push('Teksten kan ikke være der – gør skiltet større eller teksten mindre.');return m;},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);if(m.shelfBand){const o=[],[a,b]=m.shelfBand;box(o,-m.W/2-30,m.W/2+30,a,b,P.T+0.2,P.T+80);S.mesh(o,0xc9bfae,null,true);}},
+ files(m,P){return [{name:`skilt_${safe(P.text||'tomt')}`,tris:m.tris}];},
+ stats(m,P){return [['Mål',[m.W,m.H,m.T].map(f1).join(' × ')],['Tekst',(P.text||'').trim()?`${P.mount==='shelf'||P.style!=='raised'?'fordybet':'hævet'} ${f1(P.th)} mm`:'ingen']];},
+ tips:P=>P.mount==='shelf'?['Printes med forsiden nedad (som i filen) – armene står lodret og printer uden support.','Vil du have farvet tekst, så fyld fordybningerne med maling eller voks, eller skift filament efter de første lag (ved '+f1(Math.min(P.th,P.T-0.8)).replace('.',',')+' mm).']
+   :P.style==='raised'?['Printes fladt med teksten opad.',`Skift filamentfarve ved ${f1(P.T).replace('.',',')} mm (i slicerens lagvisning), så teksten${P.frame?' og rammen':''} får en anden farve.`,...(P.mount==='magnet'?['Magnethullerne sidder i bagsiden – lim magneterne i.']:[])]
+   :['Printes fladt med teksten opad.',`Skift filament ved ${f1(P.T-Math.min(P.th,P.T-0.8)).replace('.',',')} mm, så bunden af bogstaverne får en anden farve – eller fyld dem med maling.`,...(P.mount==='magnet'?['Magnethullerne sidder i bagsiden – lim magneterne i.']:[])],
+});
+
+// BATTERIER
+TOOLS.push({id:'batteri',name:'Batterier',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Batterier (antal)'},
+  {k:'n_AA',l:'AA',min:0,max:40,st:1,v:8},
+  {k:'n_AAA',l:'AAA',min:0,max:40,st:1,v:8},
+  {k:'n_C',l:'C',min:0,max:20,st:1,v:0},
+  {k:'n_D',l:'D',min:0,max:20,st:1,v:0},
+  {k:'n_b9V',l:'9V',min:0,max:20,st:1,v:2},
+  {k:'n_b18650',l:'18650',min:0,max:20,st:1,v:0},
+  {k:'n_CR2032',l:'CR2032 (knapcelle)',min:0,max:20,st:1,v:4},
+  {k:'n_CR2025',l:'CR2025 (knapcelle)',min:0,max:20,st:1,v:0},
+  {sec:'Holder'},
+  {k:'pct',l:'Hvor dybt de står (% af længden)',min:25,max:80,st:5,v:45},
+  {k:'W',l:'Største bredde',min:40,max:300,st:1,v:120},
+  {k:'hg',l:'Afstand mellem batterierne',min:1.5,max:10,st:0.5,v:2.5},
+  {k:'edge',l:'Kant',min:2,max:15,st:0.5,v:4},
+  {k:'fb',l:'Bundtykkelse',min:1,max:8,st:0.5,v:2},
+  {k:'R',l:'Hjørneradius',min:0,max:20,st:0.5,v:3},
+  {k:'cl',l:'Ekstra plads i hullerne',min:0,max:1.5,st:0.05,v:0.4},
+  {k:'lbl',l:'Typen skrevet ved hver række',type:'check',v:true},
+  {k:'lsz',l:'Tekststørrelse',min:2,max:8,st:0.5,v:4,show:P=>P.lbl},
+  {k:'mag',l:'Magneter i bunden',type:'check',v:false},
+  {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mag},
+  {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mag},
+ ],
+ after(T){const P=T.P,need=P.magH+1;if(P.mag&&P.fb<need)T.setCtl('fb',need);},
+ make(P){const labels=P.lbl?battCells(P).map(it=>textBitmap(it.b.n,P.lsz,P.lsz*5,P.lsz*1.6)):null;
+   const m=buildBattery(P,labels);if(P.lbl&&labels&&labels.some(x=>!x))m.warn.push('Teksten er for lille til at blive printet – gør den større.');return m;},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);},
+ files(m,P){return [{name:`batteriholder_${m.list.map(it=>it.n+'x'+it.b.n).join('_')||'tom'}`,tris:m.tris}];},
+ stats(m,P){return [['Mål (B × D × H)',[m.W,m.D,m.H].map(f1).join(' × ')],['Batterier',m.list.map(it=>`${it.n} × ${it.b.n}`).join(', ')||'ingen']];},
+ tips:P=>['Printes som den ligger, med hullerne opad – ingen support.','Sidder batterierne for stramt, så øg “Ekstra plads”.',...(P.lbl?['Skift evt. filamentfarve i det øverste lag, så typerne står tydeligt.']:[]),...(P.mag?['Lim magneterne i hullerne i bunden – så sidder holderen fast på køleskabet eller en metalhylde.']:[])],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -1613,10 +1924,12 @@ for(const T of TOOLS){
   T.P=Object.assign({},JSON.parse(JSON.stringify(T.init)));T.ctrls={};T.hudV=T.hud?T.hud.v:0;
   T.el=document.createElement('div');T.el.id='tool-'+T.id;T.el.style.display='none';ctl.appendChild(T.el);
   T.setCtl=(k,v)=>{T.P[k]=v;if(T.ctrls[k])T.ctrls[k].set(v);};
-  T.secs=[];
+  T.secs=[];T.cards=[];let card=null;
+  const newCard=()=>{card=document.createElement('div');card.className='card';T.el.appendChild(card);T.cards.push(card);return card;};
   for(const d of T.defs){
-    if(d.sec){const s=document.createElement('div');s.className='sec';s.textContent=d.sec;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
-    if(d.note){const s=document.createElement('div');s.className='note';s.textContent=d.note;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
+    if(d.sec){newCard();const s=document.createElement('div');s.className='sec';s.textContent=d.sec;card.appendChild(s);T.secs.push({el:s,d});continue;}
+    if(!card)newCard();
+    if(d.note){const s=document.createElement('div');s.className='note';s.textContent=d.note;card.appendChild(s);T.secs.push({el:s,d});continue;}
     T.P[d.k]=Array.isArray(d.v)?d.v.map(x=>({...x})):d.v;const r=document.createElement('div');r.className='row'+(d.type==='check'?' chk':'');r.dataset.k=d.k;
     let set,labEl;
     if(d.type==='check'){
@@ -1643,15 +1956,16 @@ for(const T of TOOLS){
       T.P[d.k]=d.v.map(x=>({...x}));set=v=>{T.P[d.k]=v.map(x=>({...x}));render();};render();
     }else if(d.type==='text'){
       r.innerHTML=`<label><span></span></label><input type="text">`;const i=r.querySelector('input');labEl=r.querySelector('span');
-      i.maxLength=d.max||40;i.placeholder=d.ph||'fx SKRUER';i.oninput=()=>change(T,d,i.value);set=v=>{i.value=v;};
+      i.maxLength=d.max||40;i.placeholder=d.ph||'fx SKRUER';i.value=d.v||'';i.oninput=()=>change(T,d,i.value);set=v=>{i.value=v;};
     }else{
       r.innerHTML=`<label><span></span><input type="number" min="${d.min}" max="${d.max}" step="${d.st}"></label><input type="range" min="${d.min}" max="${d.max}" step="${d.st}">`;
       labEl=r.querySelector('span');const [num,rng]=r.querySelectorAll('input');num.value=rng.value=d.v;
-      rng.oninput=()=>{num.value=rng.value;change(T,d,+rng.value);};
-      num.onchange=()=>{const v=Math.min(d.max,Math.max(d.min,isFinite(+num.value)&&num.value!==''?+num.value:T.P[d.k]));num.value=rng.value=v;change(T,d,v);};
-      set=v=>{num.value=v;rng.value=v;};
+      const paint=()=>rng.style.setProperty('--p',((rng.value-d.min)/((d.max-d.min)||1)*100)+'%');paint();
+      rng.oninput=()=>{num.value=rng.value;paint();change(T,d,+rng.value);};
+      num.onchange=()=>{const v=Math.min(d.max,Math.max(d.min,isFinite(+num.value)&&num.value!==''?+num.value:T.P[d.k]));num.value=rng.value=v;paint();change(T,d,v);};
+      set=v=>{num.value=v;rng.value=v;paint();};
     }
-    labEl.textContent=typeof d.l==='function'?d.l(T.P):d.l;T.ctrls[d.k]={row:r,set,labEl,d};T.el.appendChild(r);
+    labEl.textContent=typeof d.l==='function'?d.l(T.P):d.l;T.ctrls[d.k]={row:r,set,labEl,d};card.appendChild(r);
   }
 }
 function change(T,d,v){
@@ -1671,6 +1985,7 @@ function refresh(){
   for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);
     if(c.d.optShow)c.row.querySelectorAll('option').forEach(o=>{o.hidden=o.disabled=!c.d.optShow(T.P,o.value);});}
   for(const s of T.secs)s.el.style.display=(!s.d.show||s.d.show(T.P))?'':'none';
+  for(const c of T.cards)c.style.display=[...c.children].some(ch=>!ch.classList.contains('sec')&&ch.style.display!=='none')?'':'none';
   document.getElementById('tips').innerHTML=T.tips(T.P).map(t=>`<li>${t}</li>`).join('');
 }
 function applyTemplate(T,k){const t=TPL[k];if(!t)return;
@@ -1798,15 +2113,15 @@ new ResizeObserver(()=>{if(pm&&cur&&cur.hasPlan)drawPlan();}).observe(document.g
 
 // ---------- 3D ----------
 const cv=document.getElementById('c');
-const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});ren.setPixelRatio(Math.min(2,devicePixelRatio));
-ren.setClearColor(0xf4f2ee);
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});ren.setPixelRatio(Math.min(2,devicePixelRatio));
+ren.setClearColor(0x000000,0);
 const scene=new THREE.Scene();
 const cam=new THREE.PerspectiveCamera(35,1,1,5000);
 scene.add(new THREE.HemisphereLight(0xffffff,0xb8b2a6,0.75));
 const dl1=new THREE.DirectionalLight(0xffffff,0.65);dl1.position.set(1,2,1.5);scene.add(dl1);
 const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(-1.5,0.5,-1);scene.add(dl2);
 const world=new THREE.Group();world.rotation.x=-Math.PI/2;scene.add(world);
-scene.add(new THREE.GridHelper(600,60,0xd6d1c7,0xe6e2da));
+{const gh=new THREE.GridHelper(600,60,0xcfc8bc,0xdfd9cf);gh.material.transparent=true;gh.material.opacity=0.7;scene.add(gh);}
 const mats={};
 function mat(col,ghost){const k=col+(ghost?'g':'');if(!mats[k])mats[k]=new THREE.MeshStandardMaterial({color:col,flatShading:true,roughness:.6,metalness:.05,side:THREE.DoubleSide,transparent:!!ghost,opacity:ghost?0.35:1});return mats[k];}
 function geo(arr){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));g.computeVertexNormals();return g;}
@@ -1855,6 +2170,7 @@ function countTris(){let n=0;S.root.traverse(o=>{if(o.geometry&&!o.material.tran
 function frame(){const b=S.bounds;if(b[0]>b[3])return;
   const cx=(b[0]+b[3])/2,cy=(b[1]+b[4])/2,cz=(b[2]+b[5])/2,ext=Math.max(b[3]-b[0],b[4]-b[1],b[5]-b[2]);
   orb.tx=cx;orb.ty=cz*0.8;orb.tz=-cy;orb.r=Math.max(60,ext*2.4);}
+document.getElementById('vFrame').onclick=()=>frame();
 let pend=false;function sched(){if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;rebuild();});}}
 const hud=document.getElementById('hud'),ang=document.getElementById('ang'),angv=document.getElementById('angv'),hudLbl=document.getElementById('hudlbl'),pp=document.getElementById('pp');
 function applyHud(){const T=cur;if(!T.hud){hud.style.display='none';return;}hud.style.display='flex';
@@ -1864,14 +2180,27 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
+{const ORDER=['aeske','skuffer','bakke','holder','indsats','batteri','kabel','stik','lys','skilt'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
-for(const T of TOOLS){const b=document.createElement('button');b.textContent=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
+const ICONS={
+ aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
+ skuffer:'<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M4 9.2h16M4 14.8h16M10.5 6.3h3M10.5 12h3M10.5 17.7h3"/>',
+ bakke:'<path d="M3 8.5h18l-1.6 10a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8.5v11M15 8.5v11M3.6 12.5h16.8"/><path d="M5 8.5 6 5h12l1 3.5"/>',
+ holder:'<path d="M5 9h14l-1.3 10.6a1.5 1.5 0 0 1-1.5 1.4H7.8a1.5 1.5 0 0 1-1.5-1.4z"/><path d="M8.5 9 7.5 3M12 9V2.5M15.5 9l1.5-5.5"/>',
+ indsats:'<rect x="3" y="5" width="18" height="14" rx="2"/><rect x="6" y="8" width="3" height="8" rx=".6"/><rect x="10.5" y="8" width="3" height="8" rx=".6"/><circle cx="17.2" cy="10" r="1.3"/><circle cx="17.2" cy="14.4" r="1.3"/>',
+ batteri:'<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M19 10.3h1.6v3.4H19M7.5 12h3M9 10.5v3M13.5 12h2.5"/>',
+ kabel:'<path d="M3 16c3 0 3-8 7-8s3 8 7 8c1.7 0 2.6-1.2 3-2.5"/><rect x="18" y="5" width="4" height="5" rx="1"/><path d="M19.2 5V3M20.8 5V3"/>',
+ stik:'<rect x="2.5" y="8" width="19" height="8" rx="2.5"/><circle cx="7.5" cy="12" r="1.6"/><circle cx="12.5" cy="12" r="1.6"/><path d="M17.5 10.8v2.4"/>',
+ lys:'<path d="M12 3c1.8 2.2 2.6 3.7 2.6 5.1a2.6 2.6 0 0 1-5.2 0C9.4 6.7 10.2 5.2 12 3z"/><path d="M5 14h14v3.5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M12 11v3"/>',
+ skilt:'<path d="M3.5 7.5h12.7l4.3 4.5-4.3 4.5H3.5z"/><path d="M7 12h5.5"/>'};
+const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
+for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
 function switchTool(id){
   const T=TOOLS.find(t=>t.id===id)||TOOLS[0];if(cur===T)return;
   if(cur)cur.el.style.display='none';cur=T;T.el.style.display='';sel=null;selCol=0;
   for(const t of TOOLS)t.tab.classList.toggle('on',t===T);
   const pb=document.getElementById('planbox');if(T.hasPlan){T.el.appendChild(pb);pb.style.display='';}else pb.style.display='none';
-  document.getElementById('dl').textContent=T.dl;
+  document.getElementById('dl').textContent=T.dl;document.getElementById('infoT').innerHTML=icon(T.id)+T.name;
   const ex=document.getElementById('dlExtra');ex.style.display=T.extra?'':'none';if(T.extra)ex.textContent=T.extra.label;
   document.getElementById('msg').textContent='';
   refresh();rebuild();

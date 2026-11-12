@@ -200,13 +200,16 @@ const HOLDER_PRESETS={
   pens:{holes:[{s:'c',a:9,b:3,n:8}],sor:'along',tray:true},
   knives:{holes:[{s:'s',a:42,b:3.5,n:3},{s:'s',a:28,b:3,n:2}],sor:'out',tray:false,wg:4,wh:50},
   mixed:{holes:[{s:'c',a:22,b:3,n:1},{s:'c',a:12,b:3,n:3},{s:'s',a:30,b:4,n:1}],sor:'along',tray:true},
+  drivers:{holes:[{s:'c',a:7,b:3,n:3},{s:'c',a:9,b:3,n:3},{s:'c',a:11,b:3,n:2}],sor:'along',tray:false,mount:'skadis',wg:6,hgap:8,wh:58,taper:8},
+  pliers:{holes:[{s:'s',a:34,b:12,n:3}],sor:'out',tray:false,mount:'skadis',wg:5,hgap:10,wh:58,taper:0},
+  workshop:{holes:[{s:'s',a:34,b:12,n:2},{s:'c',a:8,b:3,n:3},{s:'c',a:11,b:3,n:3}],sor:'out',tray:false,mount:'skadis',wg:5,hgap:8,wh:58,taper:6},
 };
 TOOLS.push({id:'holder',name:'Holder',dl:'Download STL',
  init:{},
  defs:[
   {sec:'Type'},
   {k:'mode',l:'Holder',type:'select',opts:[['wall','Til væg / SKÅDIS'],['block','Stående blok']],v:'wall'},
-  {k:'preset',l:'Forslag',type:'select',opts:[['','Vælg forslag …'],['tb','4 tandbørster'],['tbp','4 tandbørster + tandpasta'],['knives','Knive (5 slidser)'],['tools','6 skruetrækkere'],['pens','8 pensler/kuglepenne'],['mixed','Blandede huller']],v:'',noGeom:true},
+  {k:'preset',l:'Forslag',type:'select',opts:[['','Vælg forslag …'],['tb','4 tandbørster'],['tbp','4 tandbørster + tandpasta'],['knives','Knive (5 slidser)'],['drivers','Skruetrækkere (8, tre størrelser)'],['pliers','Tænger (3 slidser)'],['workshop','Værksted: tænger + skruetrækkere'],['tools','6 skruetrækkere (ens)'],['pens','8 pensler/kuglepenne'],['mixed','Blandede huller']],v:'',noGeom:true},
   {sec:'Huller'},
   {k:'holes',l:'Hvert hul eller hver gruppe af ens huller',type:'holes',v:[{s:'c',a:14,b:3,n:4}]},
   {k:'sor',l:'Slidser vender',type:'select',opts:[['along','Langs væggen'],['out','Ud fra væggen']],v:'along',show:P=>P.holes.some(h=>h.s==='s')},
@@ -416,6 +419,115 @@ TOOLS.push({id:'lys',name:'Lys',dl:'Download STL',
    'Brug LED-fyrfadslys. Levende lys kan gøre PLA blødt – brug i så fald PETG eller ASA, og lad aldrig lyset brænde uden opsyn.'],
 });
 
+
+// BAKKER
+TOOLS.push({id:'bakke',name:'Bakker',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Mål (udvendigt)'},
+  {k:'W',l:'Bredde',min:20,max:300,st:1,v:120},
+  {k:'D',l:'Dybde',min:20,max:300,st:1,v:80},
+  {k:'H',l:'Højde (uden fod)',min:10,max:150,st:1,v:40},
+  {sec:'Rum'},
+  {k:'cols',l:'Rum i bredden',min:1,max:10,st:1,v:3},
+  {k:'rows',l:'Rum i dybden',min:1,max:10,st:1,v:2},
+  {k:'dt',l:'Skillevæggenes tykkelse',min:0.8,max:4,st:0.1,v:1.2},
+  {k:'dlow',l:'Skillevægge lavere end kanten',min:0,max:40,st:0.5,v:0},
+  {sec:'Bakke'},
+  {k:'t',l:'Vægtykkelse',min:0.8,max:4,st:0.1,v:1.6},
+  {k:'fb',l:'Bundtykkelse',min:0.8,max:5,st:0.1,v:1.2},
+  {k:'R',l:'Hjørneradius',min:0.5,max:30,st:0.5,v:5},
+  {sec:'Stabling'},
+  {k:'stack',l:'Stabelbar (fod der passer ned i bakken under)',type:'check',v:true},
+  {k:'lipH',l:'Fodens højde',min:1.5,max:8,st:0.5,v:3,show:P=>P.stack},
+  {k:'c',l:'Frigang',min:0.1,max:0.8,st:0.05,v:0.25,show:P=>P.stack},
+  {note:'Foden er lidt mindre end bakkens åbning og har en skrå overgang, så bakkerne centrerer sig selv, når de stables. Lav bakker med samme bredde og dybde, så passer de alle oven i hinanden.',show:P=>P.stack},
+ ],
+ make(P){return buildBin(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);if(P.stack){const dz=m.Htot-m.lipH-P.c,o=m.tris.map((v,i)=>i%3===2?v+dz:v);S.mesh(o,0x2b7a78,null,true);}},
+ files(m,P){return [{name:`bakke_${P.cols}x${P.rows}-rum_${P.W}x${P.D}x${f1(m.Htot)}`,tris:m.tris}];},
+ stats(m,P){return [['Mål (B × D × H)',[P.W,P.D,m.Htot].map(f1).join(' × ')],['Rum',m.cells],['Hvert rum',`${f1(m.cw)} × ${f1(m.cd)} mm`]];},
+ tips:P=>['Printes som den står, med åbningen opad – ingen support.',...(P.stack?['Den skrå fod printer fint uden support. Den gennemsigtige bakke i visningen viser, hvordan næste bakke sidder.']:[]),'En vægtykkelse på 2 × din linjebredde (fx 0,8 eller 1,6 mm med 0,4-dyse) giver de pæneste vægge.'],
+});
+
+// SKILTE
+TOOLS.push({id:'skilt',name:'Skilte',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Tekst'},
+  {k:'text',l:'Tekst',type:'text',max:40,ph:'fx SKRUER',v:'SKRUER'},
+  {k:'size',l:'Tekststørrelse (versalhøjde)',min:3,max:40,st:0.5,v:9},
+  {k:'style',l:'Tekst',type:'select',opts:[['raised','Hævet'],['recessed','Fordybet']],v:'raised',show:P=>P.mount!=='shelf'},
+  {k:'th',l:P=>P.style==='raised'&&P.mount!=='shelf'?'Tekstens højde':'Tekstens dybde',min:0.4,max:2,st:0.1,v:0.8},
+  {sec:'Skilt'},
+  {k:'autoW',l:'Bredde efter teksten',type:'check',v:true},
+  {k:'W',l:'Bredde',min:15,max:250,st:1,v:80,show:P=>!P.autoW},
+  {k:'H',l:'Højde',min:8,max:100,st:0.5,v:20},
+  {k:'pad',l:'Kant omkring teksten',min:1,max:20,st:0.5,v:4},
+  {k:'T',l:'Tykkelse',min:1.2,max:8,st:0.1,v:2.4},
+  {k:'R',l:'Hjørneradius',min:0,max:20,st:0.5,v:3},
+  {k:'frame',l:'Hævet ramme',type:'check',v:true,show:P=>P.style==='raised'&&P.mount!=='shelf'},
+  {k:'fw',l:'Rammens bredde',min:0.6,max:4,st:0.1,v:1.2,show:P=>P.style==='raised'&&P.mount!=='shelf'&&P.frame},
+  {sec:'Montering'},
+  {k:'mount',l:'Montering',type:'select',opts:[['none','Ingen / dobbeltklæbende tape'],['magnet','Magneter'],['screw','Skruer (2)'],['shelf','Klemme på hyldekant']],v:'none'},
+  {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mount==='magnet'},
+  {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mount==='magnet'},
+  {k:'sd',l:'Skruediameter',min:2,max:6,st:0.5,v:3.5,show:P=>P.mount==='screw'},
+  {k:'shd',l:'Skruehovedets diameter',min:4,max:12,st:0.5,v:7,show:P=>P.mount==='screw'},
+  {k:'Ts',l:'Hyldens tykkelse',min:4,max:40,st:0.5,v:18,show:P=>P.mount==='shelf'},
+  {k:'ta',l:'Armenes tykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.mount==='shelf'},
+  {k:'jaw',l:'Armenes længde',min:8,max:40,st:1,v:15,show:P=>P.mount==='shelf'},
+  {k:'sq',l:'Klemkraft',min:0,max:2,st:0.1,v:0.6,show:P=>P.mount==='shelf'},
+  {note:'Skiltet sættes på forkanten af hylden: den øverste arm ligger på hylden, den nederste griber under. Det printes med forsiden nedad, så teksten bliver fordybet og forsiden helt glat.',show:P=>P.mount==='shelf'},
+ ],
+ after(T){const P=T.P;if(P.mount==='shelf'&&P.H<P.Ts+2*P.ta+1)T.setCtl('H',Math.ceil(P.Ts+2*P.ta+1));if(P.mount==='magnet'){const need=Math.ceil((P.magH+1+(P.style==='raised'?0:P.th)+0.4)*10)/10;if(P.T<need)T.setCtl('T',need);}},
+ make(P){const scr=P.mount==='screw'?2*(P.shd+5):0;
+   const tb=textBitmap(P.text,P.size,P.autoW?400:Math.max(4,P.W-2*P.pad),Math.max(2,P.H-2*P.pad));
+   const m=buildSign(P,tb);if((P.text||'').trim()&&!tb)m.warn.push('Teksten kan ikke være der – gør skiltet større eller teksten mindre.');return m;},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);if(m.shelfBand){const o=[],[a,b]=m.shelfBand;box(o,-m.W/2-30,m.W/2+30,a,b,P.T+0.2,P.T+80);S.mesh(o,0xc9bfae,null,true);}},
+ files(m,P){return [{name:`skilt_${safe(P.text||'tomt')}`,tris:m.tris}];},
+ stats(m,P){return [['Mål',[m.W,m.H,m.T].map(f1).join(' × ')],['Tekst',(P.text||'').trim()?`${P.mount==='shelf'||P.style!=='raised'?'fordybet':'hævet'} ${f1(P.th)} mm`:'ingen']];},
+ tips:P=>P.mount==='shelf'?['Printes med forsiden nedad (som i filen) – armene står lodret og printer uden support.','Vil du have farvet tekst, så fyld fordybningerne med maling eller voks, eller skift filament efter de første lag (ved '+f1(Math.min(P.th,P.T-0.8)).replace('.',',')+' mm).']
+   :P.style==='raised'?['Printes fladt med teksten opad.',`Skift filamentfarve ved ${f1(P.T).replace('.',',')} mm (i slicerens lagvisning), så teksten${P.frame?' og rammen':''} får en anden farve.`,...(P.mount==='magnet'?['Magnethullerne sidder i bagsiden – lim magneterne i.']:[])]
+   :['Printes fladt med teksten opad.',`Skift filament ved ${f1(P.T-Math.min(P.th,P.T-0.8)).replace('.',',')} mm, så bunden af bogstaverne får en anden farve – eller fyld dem med maling.`,...(P.mount==='magnet'?['Magnethullerne sidder i bagsiden – lim magneterne i.']:[])],
+});
+
+// BATTERIER
+TOOLS.push({id:'batteri',name:'Batterier',dl:'Download STL',
+ init:{},
+ defs:[
+  {sec:'Batterier (antal)'},
+  {k:'n_AA',l:'AA',min:0,max:40,st:1,v:8},
+  {k:'n_AAA',l:'AAA',min:0,max:40,st:1,v:8},
+  {k:'n_C',l:'C',min:0,max:20,st:1,v:0},
+  {k:'n_D',l:'D',min:0,max:20,st:1,v:0},
+  {k:'n_b9V',l:'9V',min:0,max:20,st:1,v:2},
+  {k:'n_b18650',l:'18650',min:0,max:20,st:1,v:0},
+  {k:'n_CR2032',l:'CR2032 (knapcelle)',min:0,max:20,st:1,v:4},
+  {k:'n_CR2025',l:'CR2025 (knapcelle)',min:0,max:20,st:1,v:0},
+  {sec:'Holder'},
+  {k:'pct',l:'Hvor dybt de står (% af længden)',min:25,max:80,st:5,v:45},
+  {k:'W',l:'Største bredde',min:40,max:300,st:1,v:120},
+  {k:'hg',l:'Afstand mellem batterierne',min:1.5,max:10,st:0.5,v:2.5},
+  {k:'edge',l:'Kant',min:2,max:15,st:0.5,v:4},
+  {k:'fb',l:'Bundtykkelse',min:1,max:8,st:0.5,v:2},
+  {k:'R',l:'Hjørneradius',min:0,max:20,st:0.5,v:3},
+  {k:'cl',l:'Ekstra plads i hullerne',min:0,max:1.5,st:0.05,v:0.4},
+  {k:'lbl',l:'Typen skrevet ved hver række',type:'check',v:true},
+  {k:'lsz',l:'Tekststørrelse',min:2,max:8,st:0.5,v:4,show:P=>P.lbl},
+  {k:'mag',l:'Magneter i bunden',type:'check',v:false},
+  {k:'magD',l:'Magnet-diameter',min:3,max:15,st:0.5,v:6,show:P=>P.mag},
+  {k:'magH',l:'Magnet-højde',min:1,max:5,st:0.5,v:2,show:P=>P.mag},
+ ],
+ after(T){const P=T.P,need=P.magH+1;if(P.mag&&P.fb<need)T.setCtl('fb',need);},
+ make(P){const labels=P.lbl?battCells(P).map(it=>textBitmap(it.b.n,P.lsz,P.lsz*5,P.lsz*1.6)):null;
+   const m=buildBattery(P,labels);if(P.lbl&&labels&&labels.some(x=>!x))m.warn.push('Teksten er for lille til at blive printet – gør den større.');return m;},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);},
+ files(m,P){return [{name:`batteriholder_${m.list.map(it=>it.n+'x'+it.b.n).join('_')||'tom'}`,tris:m.tris}];},
+ stats(m,P){return [['Mål (B × D × H)',[m.W,m.D,m.H].map(f1).join(' × ')],['Batterier',m.list.map(it=>`${it.n} × ${it.b.n}`).join(', ')||'ingen']];},
+ tips:P=>['Printes som den ligger, med hullerne opad – ingen support.','Sidder batterierne for stramt, så øg “Ekstra plads”.',...(P.lbl?['Skift evt. filamentfarve i det øverste lag, så typerne står tydeligt.']:[]),...(P.mag?['Lim magneterne i hullerne i bunden – så sidder holderen fast på køleskabet eller en metalhylde.']:[])],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -481,10 +593,12 @@ for(const T of TOOLS){
   T.P=Object.assign({},JSON.parse(JSON.stringify(T.init)));T.ctrls={};T.hudV=T.hud?T.hud.v:0;
   T.el=document.createElement('div');T.el.id='tool-'+T.id;T.el.style.display='none';ctl.appendChild(T.el);
   T.setCtl=(k,v)=>{T.P[k]=v;if(T.ctrls[k])T.ctrls[k].set(v);};
-  T.secs=[];
+  T.secs=[];T.cards=[];let card=null;
+  const newCard=()=>{card=document.createElement('div');card.className='card';T.el.appendChild(card);T.cards.push(card);return card;};
   for(const d of T.defs){
-    if(d.sec){const s=document.createElement('div');s.className='sec';s.textContent=d.sec;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
-    if(d.note){const s=document.createElement('div');s.className='note';s.textContent=d.note;T.el.appendChild(s);T.secs.push({el:s,d});continue;}
+    if(d.sec){newCard();const s=document.createElement('div');s.className='sec';s.textContent=d.sec;card.appendChild(s);T.secs.push({el:s,d});continue;}
+    if(!card)newCard();
+    if(d.note){const s=document.createElement('div');s.className='note';s.textContent=d.note;card.appendChild(s);T.secs.push({el:s,d});continue;}
     T.P[d.k]=Array.isArray(d.v)?d.v.map(x=>({...x})):d.v;const r=document.createElement('div');r.className='row'+(d.type==='check'?' chk':'');r.dataset.k=d.k;
     let set,labEl;
     if(d.type==='check'){
@@ -511,15 +625,16 @@ for(const T of TOOLS){
       T.P[d.k]=d.v.map(x=>({...x}));set=v=>{T.P[d.k]=v.map(x=>({...x}));render();};render();
     }else if(d.type==='text'){
       r.innerHTML=`<label><span></span></label><input type="text">`;const i=r.querySelector('input');labEl=r.querySelector('span');
-      i.maxLength=d.max||40;i.placeholder=d.ph||'fx SKRUER';i.oninput=()=>change(T,d,i.value);set=v=>{i.value=v;};
+      i.maxLength=d.max||40;i.placeholder=d.ph||'fx SKRUER';i.value=d.v||'';i.oninput=()=>change(T,d,i.value);set=v=>{i.value=v;};
     }else{
       r.innerHTML=`<label><span></span><input type="number" min="${d.min}" max="${d.max}" step="${d.st}"></label><input type="range" min="${d.min}" max="${d.max}" step="${d.st}">`;
       labEl=r.querySelector('span');const [num,rng]=r.querySelectorAll('input');num.value=rng.value=d.v;
-      rng.oninput=()=>{num.value=rng.value;change(T,d,+rng.value);};
-      num.onchange=()=>{const v=Math.min(d.max,Math.max(d.min,isFinite(+num.value)&&num.value!==''?+num.value:T.P[d.k]));num.value=rng.value=v;change(T,d,v);};
-      set=v=>{num.value=v;rng.value=v;};
+      const paint=()=>rng.style.setProperty('--p',((rng.value-d.min)/((d.max-d.min)||1)*100)+'%');paint();
+      rng.oninput=()=>{num.value=rng.value;paint();change(T,d,+rng.value);};
+      num.onchange=()=>{const v=Math.min(d.max,Math.max(d.min,isFinite(+num.value)&&num.value!==''?+num.value:T.P[d.k]));num.value=rng.value=v;paint();change(T,d,v);};
+      set=v=>{num.value=v;rng.value=v;paint();};
     }
-    labEl.textContent=typeof d.l==='function'?d.l(T.P):d.l;T.ctrls[d.k]={row:r,set,labEl,d};T.el.appendChild(r);
+    labEl.textContent=typeof d.l==='function'?d.l(T.P):d.l;T.ctrls[d.k]={row:r,set,labEl,d};card.appendChild(r);
   }
 }
 function change(T,d,v){
@@ -539,6 +654,7 @@ function refresh(){
   for(const k in T.ctrls){const c=T.ctrls[k];c.row.style.display=(!c.d.show||c.d.show(T.P))?'':'none';if(typeof c.d.l==='function')c.labEl.textContent=c.d.l(T.P);
     if(c.d.optShow)c.row.querySelectorAll('option').forEach(o=>{o.hidden=o.disabled=!c.d.optShow(T.P,o.value);});}
   for(const s of T.secs)s.el.style.display=(!s.d.show||s.d.show(T.P))?'':'none';
+  for(const c of T.cards)c.style.display=[...c.children].some(ch=>!ch.classList.contains('sec')&&ch.style.display!=='none')?'':'none';
   document.getElementById('tips').innerHTML=T.tips(T.P).map(t=>`<li>${t}</li>`).join('');
 }
 function applyTemplate(T,k){const t=TPL[k];if(!t)return;
@@ -666,15 +782,15 @@ new ResizeObserver(()=>{if(pm&&cur&&cur.hasPlan)drawPlan();}).observe(document.g
 
 // ---------- 3D ----------
 const cv=document.getElementById('c');
-const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});ren.setPixelRatio(Math.min(2,devicePixelRatio));
-ren.setClearColor(0xf4f2ee);
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});ren.setPixelRatio(Math.min(2,devicePixelRatio));
+ren.setClearColor(0x000000,0);
 const scene=new THREE.Scene();
 const cam=new THREE.PerspectiveCamera(35,1,1,5000);
 scene.add(new THREE.HemisphereLight(0xffffff,0xb8b2a6,0.75));
 const dl1=new THREE.DirectionalLight(0xffffff,0.65);dl1.position.set(1,2,1.5);scene.add(dl1);
 const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(-1.5,0.5,-1);scene.add(dl2);
 const world=new THREE.Group();world.rotation.x=-Math.PI/2;scene.add(world);
-scene.add(new THREE.GridHelper(600,60,0xd6d1c7,0xe6e2da));
+{const gh=new THREE.GridHelper(600,60,0xcfc8bc,0xdfd9cf);gh.material.transparent=true;gh.material.opacity=0.7;scene.add(gh);}
 const mats={};
 function mat(col,ghost){const k=col+(ghost?'g':'');if(!mats[k])mats[k]=new THREE.MeshStandardMaterial({color:col,flatShading:true,roughness:.6,metalness:.05,side:THREE.DoubleSide,transparent:!!ghost,opacity:ghost?0.35:1});return mats[k];}
 function geo(arr){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));g.computeVertexNormals();return g;}
@@ -723,6 +839,7 @@ function countTris(){let n=0;S.root.traverse(o=>{if(o.geometry&&!o.material.tran
 function frame(){const b=S.bounds;if(b[0]>b[3])return;
   const cx=(b[0]+b[3])/2,cy=(b[1]+b[4])/2,cz=(b[2]+b[5])/2,ext=Math.max(b[3]-b[0],b[4]-b[1],b[5]-b[2]);
   orb.tx=cx;orb.ty=cz*0.8;orb.tz=-cy;orb.r=Math.max(60,ext*2.4);}
+document.getElementById('vFrame').onclick=()=>frame();
 let pend=false;function sched(){if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;rebuild();});}}
 const hud=document.getElementById('hud'),ang=document.getElementById('ang'),angv=document.getElementById('angv'),hudLbl=document.getElementById('hudlbl'),pp=document.getElementById('pp');
 function applyHud(){const T=cur;if(!T.hud){hud.style.display='none';return;}hud.style.display='flex';
@@ -732,14 +849,27 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
+{const ORDER=['aeske','skuffer','bakke','holder','indsats','batteri','kabel','stik','lys','skilt'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
-for(const T of TOOLS){const b=document.createElement('button');b.textContent=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
+const ICONS={
+ aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
+ skuffer:'<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M4 9.2h16M4 14.8h16M10.5 6.3h3M10.5 12h3M10.5 17.7h3"/>',
+ bakke:'<path d="M3 8.5h18l-1.6 10a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8.5v11M15 8.5v11M3.6 12.5h16.8"/><path d="M5 8.5 6 5h12l1 3.5"/>',
+ holder:'<path d="M5 9h14l-1.3 10.6a1.5 1.5 0 0 1-1.5 1.4H7.8a1.5 1.5 0 0 1-1.5-1.4z"/><path d="M8.5 9 7.5 3M12 9V2.5M15.5 9l1.5-5.5"/>',
+ indsats:'<rect x="3" y="5" width="18" height="14" rx="2"/><rect x="6" y="8" width="3" height="8" rx=".6"/><rect x="10.5" y="8" width="3" height="8" rx=".6"/><circle cx="17.2" cy="10" r="1.3"/><circle cx="17.2" cy="14.4" r="1.3"/>',
+ batteri:'<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M19 10.3h1.6v3.4H19M7.5 12h3M9 10.5v3M13.5 12h2.5"/>',
+ kabel:'<path d="M3 16c3 0 3-8 7-8s3 8 7 8c1.7 0 2.6-1.2 3-2.5"/><rect x="18" y="5" width="4" height="5" rx="1"/><path d="M19.2 5V3M20.8 5V3"/>',
+ stik:'<rect x="2.5" y="8" width="19" height="8" rx="2.5"/><circle cx="7.5" cy="12" r="1.6"/><circle cx="12.5" cy="12" r="1.6"/><path d="M17.5 10.8v2.4"/>',
+ lys:'<path d="M12 3c1.8 2.2 2.6 3.7 2.6 5.1a2.6 2.6 0 0 1-5.2 0C9.4 6.7 10.2 5.2 12 3z"/><path d="M5 14h14v3.5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M12 11v3"/>',
+ skilt:'<path d="M3.5 7.5h12.7l4.3 4.5-4.3 4.5H3.5z"/><path d="M7 12h5.5"/>'};
+const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
+for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
 function switchTool(id){
   const T=TOOLS.find(t=>t.id===id)||TOOLS[0];if(cur===T)return;
   if(cur)cur.el.style.display='none';cur=T;T.el.style.display='';sel=null;selCol=0;
   for(const t of TOOLS)t.tab.classList.toggle('on',t===T);
   const pb=document.getElementById('planbox');if(T.hasPlan){T.el.appendChild(pb);pb.style.display='';}else pb.style.display='none';
-  document.getElementById('dl').textContent=T.dl;
+  document.getElementById('dl').textContent=T.dl;document.getElementById('infoT').innerHTML=icon(T.id)+T.name;
   const ex=document.getElementById('dlExtra');ex.style.display=T.extra?'':'none';if(T.extra)ex.textContent=T.extra.label;
   document.getElementById('msg').textContent='';
   refresh();rebuild();

@@ -10,11 +10,14 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 |---|---|
 | **Æske** | Æske med låg og hængsel, der printes samlet i ét stykke (print-in-place). Indvendig kant, klik-lås, greb, tekst på låg og/eller forside, magneter til stabling og frit placerbare skillevægge. |
 | **Skuffer** | Skuffereol med 1–6 skuffer. Greb (fingerhul, kant eller håndtag), stop, etiketter og rumopdeling. Kan hænge på IKEA SKÅDIS. |
-| **Holder** | Vægholder eller stående blok med huller i forskellige størrelser og former, fx til tandbørster, knive eller værktøj. Tilspidsede huller, drypbakke og montering med skruer, tape eller SKÅDIS. |
+| **Bakker** | Stabelbare sorteringsbakker med rum i et gitter. Skrå fod, der centrerer bakken oven på den næste. |
+| **Holder** | Vægholder eller stående blok med huller i forskellige størrelser og former, fx til tandbørster, knive, skruetrækkere og tænger (færdige forslag til SKÅDIS). Tilspidsede huller, drypbakke og montering med skruer, tape eller SKÅDIS. |
 | **Kabel** | Kabelclips til bordkanten eller væggen, og kabelbøjle til et helt bundt (kammer med klik-spalte forneden). Montering med 1–2 skruer, magneter, tape, SKÅDIS eller bordkant-klemme. |
 | **Stikdåse** | Holdere til stikdåser: enkelte bøjler, en samlet holder (2 bøjler forbundet med en bjælke) eller en skrå stander med clips. Mål efter din egen dåse. Montering med SKÅDIS-kroge, skruehuller, magneter, bordkant-klemme eller ingenting. |
 | **Lys** | Fyrfadsholder med stilk til ler/oasis eller med øskner til ståltråd. Almindelige eller maxi-fyrfadslys, flere stk. i samme fil. |
 | **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. Også bits (1/4" sekskant) og bor med størrelsen skrevet under hvert hul. |
+| **Batterier** | Holder til AA, AAA, C, D, 9V, 18650 og knapceller (CR2032/CR2025) – bland frit, med typen skrevet ved hver række og evt. magneter i bunden. |
+| **Skilte** | Skilte og mærker med hævet eller fordybet tekst og evt. ramme. Tape, magneter, skruer eller klemme på hyldekanten. |
 
 Alle mål er i mm.
 
@@ -31,7 +34,7 @@ Alle mål er i mm.
 
 - **Gem:** gemmer opsætninger i din egen browser.
 - **Delekode:** kopiér en kode, som en anden kan indlæse. Den åbner automatisk den rigtige fane.
-- **Direkte link til en fane:** fx `#skuffer`, `#holder`, `#kabel`, `#indsats`, `#lys`, `#stik`.
+- **Direkte link til en fane:** fx `#skuffer`, `#bakke`, `#holder`, `#indsats`, `#batteri`, `#kabel`, `#stik`, `#lys`, `#skilt`.
 
 ## Kode
 
@@ -41,6 +44,7 @@ Kildekoden ligger opdelt i `src/`:
 
 - `src/geom.js` – geometri-motor (polygoner, ekstrudering, triangulering) og æsken
 - `src/tools.js` – skuffer, holder, kabelclips, indsats og SKÅDIS-kroge
+- `src/tools2.js` – bakker, skilte og batteriholdere
 - `src/app.js` – brugerflade, 3D-visning, download og gem/del
 - `src/shell.html` – HTML og CSS
 
