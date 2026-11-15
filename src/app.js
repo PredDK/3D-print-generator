@@ -528,6 +528,91 @@ TOOLS.push({id:'batteri',name:'Batterier',dl:'Download STL',
  tips:P=>['Printes som den ligger, med hullerne opad – ingen support.','Sidder batterierne for stramt, så øg “Ekstra plads”.',...(P.lbl?['Skift evt. filamentfarve i det øverste lag, så typerne står tydeligt.']:[]),...(P.mag?['Lim magneterne i hullerne i bunden – så sidder holderen fast på køleskabet eller en metalhylde.']:[])],
 });
 
+
+// GRIDFINITY
+TOOLS.push({id:'grid',name:'Gridfinity',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'gtype',l:'Hvad skal laves',type:'select',opts:[['bin','Bakke (bin)'],['base','Bundplade']],v:'bin'},
+  {note:'Gridfinity er et standardsystem til skuffer og værksteder: bakkerne passer i et 42 × 42 mm gitter og kan blandes med tusindvis af andre Gridfinity-modeller.'},
+  {sec:'Størrelse (felter á 42 mm)'},
+  {k:'gx',l:'Felter i bredden',min:1,max:10,st:1,v:2},
+  {k:'gy',l:'Felter i dybden',min:1,max:10,st:1,v:1},
+  {k:'hu',l:'Højde (enheder á 7 mm)',min:2,max:20,st:1,v:3,show:P=>P.gtype==='bin'},
+  {sec:'Rum',show:P=>P.gtype==='bin'},
+  {k:'cols',l:'Rum i bredden',min:1,max:10,st:1,v:2,show:P=>P.gtype==='bin'},
+  {k:'rows',l:'Rum i dybden',min:1,max:8,st:1,v:1,show:P=>P.gtype==='bin'},
+  {k:'dt',l:'Skillevæggenes tykkelse',min:0.8,max:3,st:0.1,v:1.2,show:P=>P.gtype==='bin'},
+  {k:'dlow',l:'Skillevægge lavere end kanten',min:0,max:40,st:0.5,v:0,show:P=>P.gtype==='bin'&&!P.lip},
+  {sec:'Bakke',show:P=>P.gtype==='bin'},
+  {k:'lip',l:'Stabelkant (bakker kan stables)',type:'check',v:true,show:P=>P.gtype==='bin'},
+  {k:'scoop',l:'Gribekant forrest i hvert rum',type:'check',v:true,show:P=>P.gtype==='bin'},
+  {k:'rs',l:'Gribekantens radius',min:3,max:20,st:0.5,v:8,show:P=>P.gtype==='bin'&&P.scoop},
+  {k:'label',l:'Etiketkant bagerst',type:'check',v:true,show:P=>P.gtype==='bin'},
+  {k:'lw',l:'Etiketkantens dybde',min:6,max:20,st:0.5,v:12,show:P=>P.gtype==='bin'&&P.label},
+  {k:'t',l:'Vægtykkelse',min:0.8,max:2.4,st:0.05,v:1.2,show:P=>P.gtype==='bin'},
+  {k:'fb',l:'Bundtykkelse over foden',min:0.8,max:5,st:0.1,v:1.2,show:P=>P.gtype==='bin'},
+  {k:'mag',l:'Magneter i fødderne',type:'check',v:false,show:P=>P.gtype==='bin'},
+  {k:'magD',l:'Magnet-diameter (inkl. frigang)',min:3,max:10,st:0.1,v:6.5,show:P=>P.gtype==='bin'&&P.mag},
+  {k:'magH',l:'Magnet-højde (inkl. frigang)',min:1,max:3.5,st:0.1,v:2.4,show:P=>P.gtype==='bin'&&P.mag},
+  {sec:'Bundplade',show:P=>P.gtype==='base'},
+  {k:'fit',l:'Fyld en skuffe ud',type:'check',v:false,show:P=>P.gtype==='base'},
+  {k:'fW',l:'Skuffens indvendige bredde',min:42,max:800,st:0.5,v:200,show:P=>P.gtype==='base'&&P.fit},
+  {k:'fD',l:'Skuffens indvendige dybde',min:42,max:800,st:0.5,v:150,show:P=>P.gtype==='base'&&P.fit},
+  {k:'align',l:'Gitteret placeres',type:'select',opts:[['center','I midten'],['corner','I hjørnet']],v:'center',show:P=>P.gtype==='base'&&P.fit},
+  {note:'Felterne udregnes automatisk, og resten bliver en flad kant, så pladen ikke kan glide rundt.',show:P=>P.gtype==='base'&&P.fit},
+  {k:'bed',l:'Printpladens størrelse',min:100,max:500,st:5,v:220,show:P=>P.gtype==='base'},
+ ],
+ after(T,k){const P=T.P;if(P.gtype==='base'&&P.fit&&(k==='fW'||k==='fD'||k==='fit'||k==='gtype')){
+   T.setCtl('gx',Math.max(1,Math.min(10,Math.floor((P.fW-0.5)/42))));T.setCtl('gy',Math.max(1,Math.min(10,Math.floor((P.fD-0.5)/42))));}},
+ make(P){return P.gtype==='base'?buildGfBase(P):buildGfBin(P);},
+ setup(m,S,P){S.mesh(m.tris,P.gtype==='base'?0x6b7f7d:0x2b7a78);},
+ files(m,P){return [{name:P.gtype==='base'?`gridfinity_bundplade_${m.nx}x${m.ny}`:`gridfinity_bakke_${P.gx}x${P.gy}x${P.hu}`,tris:m.tris}];},
+ stats(m,P){return P.gtype==='base'?[['Felter',`${m.nx} × ${m.ny}`],['Mål',[m.W,m.D,m.H].map(f1).join(' × ')]]
+   :[['Størrelse',`${P.gx} × ${P.gy} felter, ${P.hu} enheder høj`],['Mål (B × D × H)',[m.W,m.D,m.H].map(f1).join(' × ')],['Rum',`${m.cells} á ${f1(m.cw)} × ${f1(m.cd)} mm`]];},
+ tips:P=>P.gtype==='base'?['Printes fladt – ingen support.','Er skuffen større end printpladen, så print flere mindre bundplader og læg dem ved siden af hinanden.','Bundpladen er åben i bunden ligesom standarden, så den bruger meget lidt filament.']
+   :['Printes som den står – ingen support. Fødderne er skrå (45°), så de printer fint.','Bakken passer på alle Gridfinity-bundplader, også andres.',...(P.lip?['Med stabelkant kan bakkerne stables oven på hinanden.']:[]),...(P.mag?['Magneterne (6 × 2 mm) trykkes eller limes ind i fødderne nedefra.']:[]),...(P.label?['Etiketkanten har skrå underside og printer uden support.']:[])],
+});
+
+// BESLAG
+TOOLS.push({id:'beslag',name:'Beslag',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'btype',l:'Type',type:'select',opts:[['hinge','Hængsel (printes samlet)'],['angle','Vinkelbeslag (L med afstivning)'],['flatI','Lige samleplade'],['flatL','Hjørneplade (L)'],['flatT','T-plade'],['flatX','Krydsplade']],v:'hinge'},
+  {sec:'Hængsel',show:P=>P.btype==='hinge'},
+  {k:'hl',l:'Længde',min:15,max:150,st:1,v:40,show:P=>P.btype==='hinge'},
+  {k:'hw',l:'Pladernes bredde (hver)',min:8,max:60,st:0.5,v:18,show:P=>P.btype==='hinge'},
+  {k:'lt',l:'Pladetykkelse',min:1.6,max:6,st:0.1,v:2.6,show:P=>P.btype==='hinge'},
+  {k:'kd',l:'Knækkets diameter',min:5,max:16,st:0.5,v:7,show:P=>P.btype==='hinge'},
+  {k:'kn',l:'Antal led',type:'select',num:true,opts:[['3','3'],['5','5'],['7','7'],['9','9']],v:5,show:P=>P.btype==='hinge'},
+  {k:'kw',l:'Rørets væg',min:0.8,max:3,st:0.1,v:1.2,show:P=>P.btype==='hinge'},
+  {k:'c',l:'Frigang',min:0.2,max:0.8,st:0.05,v:0.35,show:P=>P.btype==='hinge'},
+  {note:'Hængslet printes samlet med stiften indeni. Virker det ikke løst efter print, så øg frigangen 0,05 mm ad gangen.',show:P=>P.btype==='hinge'},
+  {sec:'Vinkelbeslag',show:P=>P.btype==='angle'},
+  {k:'la',l:'Ben 1 (ligger på pladen)',min:12,max:150,st:1,v:30,show:P=>P.btype==='angle'},
+  {k:'lb',l:'Ben 2 (står op)',min:12,max:150,st:1,v:30,show:P=>P.btype==='angle'},
+  {k:'bw',l:'Bredde',min:8,max:120,st:1,v:40,show:P=>P.btype==='angle'},
+  {k:'gus',l:'Afstivning',type:'check',v:true,show:P=>P.btype==='angle'},
+  {k:'gt',l:'Afstivningens tykkelse',min:1.2,max:8,st:0.1,v:3,show:P=>P.btype==='angle'&&P.gus},
+  {sec:'Plade',show:P=>P.btype.startsWith('flat')},
+  {k:'al',l:P=>P.btype==='flatI'?'Halv længde (fra midten)':'Armenes længde (fra midten)',min:12,max:150,st:1,v:45,show:P=>P.btype.startsWith('flat')},
+  {k:'aw',l:'Bredde',min:8,max:60,st:0.5,v:16,show:P=>P.btype.startsWith('flat')},
+  {k:'bt',l:'Tykkelse',min:1.6,max:10,st:0.1,v:3,show:P=>P.btype!=='hinge'},
+  {sec:'Skruer'},
+  {k:'nh',l:P=>P.btype==='hinge'?'Huller pr. plade':P.btype==='angle'?'Huller pr. ben':'Huller pr. arm',min:0,max:5,st:1,v:2},
+  {k:'sd',l:'Skruediameter',min:2,max:8,st:0.5,v:3.5,show:P=>P.nh>0},
+  {k:'shd',l:'Skruehovedets diameter',min:4,max:16,st:0.5,v:7,show:P=>P.nh>0},
+ ],
+ make(P){return buildBracket(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);},
+ files(m,P){const nm={hinge:'haengsel',angle:'vinkelbeslag',flatI:'samleplade',flatL:'hjoerneplade',flatT:'t-plade',flatX:'krydsplade'}[P.btype];
+   return [{name:`${nm}_${m.dims.map(v=>Math.round(v)).join('x')}`,tris:m.tris}];},
+ stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],['Skruehuller',P.nh?`${P.nh} pr. ${P.btype==='hinge'?'plade':P.btype==='angle'?'ben':'arm'}, Ø${f1(P.sd)} forsænket`:'ingen']];},
+ tips:P=>P.btype==='hinge'?['Printes som den ligger, med begge plader fladt på printpladen – stiften printes indeni.','Bøj det forsigtigt frem og tilbage efter print, så leddene slipper hinanden.','Sidder det fast, så øg frigangen; slasker det, så mindsk den. Brug evt. 0,2 mm lagtykkelse for de pæneste led.']
+   :P.btype==='angle'?['Printes med ben 1 fladt på pladen – afstivningen står lodret og kræver ingen support.','Brug 4 eller flere perimetre (vægge) og 40 % udfyldning, så beslaget bliver stærkt.','Skruehullerne er forsænkede på indersiden af vinklen.']
+   :['Printes fladt – ingen support.','Brug flere perimetre for styrke; hullerne er forsænkede på oversiden.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -849,7 +934,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','holder','indsats','batteri','kabel','stik','lys','skilt'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','indsats','batteri','kabel','stik','lys','skilt','beslag'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -861,7 +946,9 @@ const ICONS={
  kabel:'<path d="M3 16c3 0 3-8 7-8s3 8 7 8c1.7 0 2.6-1.2 3-2.5"/><rect x="18" y="5" width="4" height="5" rx="1"/><path d="M19.2 5V3M20.8 5V3"/>',
  stik:'<rect x="2.5" y="8" width="19" height="8" rx="2.5"/><circle cx="7.5" cy="12" r="1.6"/><circle cx="12.5" cy="12" r="1.6"/><path d="M17.5 10.8v2.4"/>',
  lys:'<path d="M12 3c1.8 2.2 2.6 3.7 2.6 5.1a2.6 2.6 0 0 1-5.2 0C9.4 6.7 10.2 5.2 12 3z"/><path d="M5 14h14v3.5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M12 11v3"/>',
- skilt:'<path d="M3.5 7.5h12.7l4.3 4.5-4.3 4.5H3.5z"/><path d="M7 12h5.5"/>'};
+ skilt:'<path d="M3.5 7.5h12.7l4.3 4.5-4.3 4.5H3.5z"/><path d="M7 12h5.5"/>',
+ grid:'<rect x="3" y="3" width="8" height="8" rx="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.8"/>',
+ beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
 function switchTool(id){
