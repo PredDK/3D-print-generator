@@ -613,6 +613,128 @@ TOOLS.push({id:'beslag',name:'Beslag',dl:'Download STL',
    :['Printes fladt – ingen support.','Brug flere perimetre for styrke; hullerne er forsænkede på oversiden.'],
 });
 
+
+// SKÅDIS-TILBEHØR
+const SKD=[{sec:'SKÅDIS'},
+  {k:'Tb',l:'Pladens tykkelse',min:3,max:8,st:0.1,v:5},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook'},
+  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)'],['both','I begge sider (kræver support)']],v:'side'}];
+TOOLS.push({id:'skadis',name:'SKÅDIS',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'stype',l:'Type',type:'select',opts:[['hook','Krog (J-krog)'],['dhook','Dobbeltkrog (to etager)'],['shelf','Hylde'],['roll','Rulleholder (tape, bånd, filament)'],['tray','Skruebakke']],v:'hook'},
+  {sec:'Mål'},
+  {k:'sw',l:P=>P.stype==='shelf'||P.stype==='tray'?'Bredde (langs væggen)':'Bredde',min:6,max:200,st:1,v:12,show:P=>P.stype!=='roll'},
+  {k:'L',l:P=>P.stype==='roll'?'Akselens længde':'Krogens længde',min:10,max:150,st:1,v:35,show:P=>['hook','dhook','roll'].includes(P.stype)},
+  {k:'L2',l:'Øverste krogs længde',min:8,max:120,st:1,v:20,show:P=>P.stype==='dhook'},
+  {k:'gap',l:'Afstand mellem krogene',min:8,max:80,st:1,v:25,show:P=>P.stype==='dhook'},
+  {k:'at',l:'Krogens tykkelse',min:2.5,max:12,st:0.5,v:5,show:P=>P.stype==='hook'||P.stype==='dhook'},
+  {k:'tip',l:'Spidsens højde',min:0,max:30,st:0.5,v:8,show:P=>P.stype==='hook'||P.stype==='dhook'},
+  {k:'ang',l:'Hældning opad (°)',min:0,max:45,st:1,v:8,show:P=>P.stype==='hook'||P.stype==='dhook'},
+  {k:'D',l:'Dybde (ud fra væggen)',min:15,max:150,st:1,v:60,show:P=>P.stype==='shelf'||P.stype==='tray'},
+  {k:'st',l:'Hyldens tykkelse',min:2,max:8,st:0.5,v:3,show:P=>P.stype==='shelf'},
+  {k:'lh',l:'Forkantens højde',min:0,max:30,st:0.5,v:6,show:P=>P.stype==='shelf'},
+  {k:'lt',l:'Forkantens tykkelse',min:1.2,max:5,st:0.1,v:2,show:P=>P.stype==='shelf'&&P.lh>0},
+  {k:'ad',l:'Akselens diameter',min:8,max:60,st:0.5,v:22,show:P=>P.stype==='roll'},
+  {note:'Akslen skal være lidt mindre end hullet i rullen: tape ca. 22 mm, gavebånd 20–30 mm, filamentspole ca. 50 mm.',show:P=>P.stype==='roll'},
+  {k:'sh',l:'Stoppets højde over akslen',min:0,max:30,st:0.5,v:6,show:P=>P.stype==='roll'},
+  {k:'sst',l:'Stoppets tykkelse',min:2,max:8,st:0.5,v:3,show:P=>P.stype==='roll'},
+  {k:'hf',l:'Bakkens højde',min:10,max:80,st:1,v:35,show:P=>P.stype==='tray'},
+  {k:'tt',l:'Vægtykkelse',min:1.2,max:4,st:0.1,v:2,show:P=>P.stype==='tray'},
+  {k:'trn',l:'Antal rum',min:1,max:6,st:1,v:1,show:P=>P.stype==='tray'},
+  {k:'rs',l:'Hulkehl forrest (skub skruerne op)',min:0,max:30,st:0.5,v:12,show:P=>P.stype==='tray'},
+  {note:'Enderne og skillevæggene er skrå (45°), så bakken kan printes liggende uden support.',show:P=>P.stype==='tray'},
+  {k:'hp',l:'Bagpladens højde (mindst)',min:10,max:150,st:1,v:30},
+  {k:'sbt',l:'Bagpladens tykkelse',min:2,max:6,st:0.1,v:3},
+  ...SKD,
+ ],
+ after(T,k){const P=T.P;if(k==='stype'){const d={hook:12,dhook:14,shelf:80,roll:22,tray:100};if(d[P.stype])T.setCtl('sw',d[P.stype]);
+   if(P.stype==='shelf'||P.stype==='tray')T.setCtl('D',P.stype==='tray'?50:60);if(P.stype==='roll')T.setCtl('L',70);if(P.stype==='hook'||P.stype==='dhook')T.setCtl('L',35);}},
+ make(P){return buildSkadisItem(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);const o=[];box(o,-m.w/2-40,m.w/2+40,0,P.Tb,-40,m.skadis.top+30);S.mesh(o,0xe8e2d6,null,true);},
+ files(m,P){const nm={hook:'krog',dhook:'dobbeltkrog',shelf:'hylde',roll:'rulleholder',tray:'skruebakke'}[P.stype];return [{name:`skadis_${nm}_${Math.round(m.w)}mm`,tris:m.tris}];},
+ stats(m,P){return [['Mål',m.dims.map(f1).join(' × ')],['Kroge',`${P.hookPos==='both'&&m.w>=SK.pitch+SK.tw?2:1} øverst${P.skLow!=='none'?' + '+(P.skLow==='hook'?'krog':'tap')+' nederst':''}`]];},
+ tips:P=>['Printes liggende på siden (som i filen), så krogene bliver stærke.'+(P.hookPos==='side'?' Der skal ikke bruges support.':' Slå support til (kun fra printpladen) – den skal bære krogen, der ikke starter på pladen.'),
+   'Sæt den i ved at stikke krogen ind i hullet og skubbe ned. Den nederste krog/tap holder den lige.',
+   ...(P.stype==='shelf'?['Brug 3–4 perimetre, så hylden kan bære noget.']:[]),...(P.stype==='roll'?['Akslen printes liggende og bliver rund nok til at ruller kan dreje.']:[])],
+});
+
+// SKRIVEBORD
+TOOLS.push({id:'bord',name:'Skrivebord',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'dtype',l:'Type',type:'select',opts:[['phone','Telefon- / tabletstander'],['head','Hovedtelefonholder'],['pens','Penneholder'],['laptop','Laptop-fødder']],v:'phone'},
+  // telefon
+  {sec:'Stander',show:P=>P.dtype==='phone'},
+  {k:'pdt',l:'Enhedens tykkelse (med cover)',min:5,max:30,st:0.5,v:12,show:P=>P.dtype==='phone'},
+  {k:'pa',l:'Hældning bagud (°)',min:5,max:45,st:1,v:22,show:P=>P.dtype==='phone'},
+  {k:'pw',l:'Bredde',min:20,max:200,st:1,v:70,show:P=>P.dtype==='phone'},
+  {k:'pls',l:'Rygstøttens længde',min:30,max:160,st:1,v:70,show:P=>P.dtype==='phone'},
+  {k:'phl',l:'Hyldens højde',min:5,max:60,st:0.5,v:14,show:P=>P.dtype==='phone'},
+  {k:'plh',l:'Forkantens højde',min:2,max:25,st:0.5,v:8,show:P=>P.dtype==='phone'},
+  {k:'plb',l:'Fodens dybde (mindst)',min:40,max:200,st:1,v:85,show:P=>P.dtype==='phone'},
+  {k:'pcable',l:'Hul til ladekabel',type:'check',v:true,show:P=>P.dtype==='phone'},
+  {k:'pcw',l:'Kabelhullets bredde',min:6,max:30,st:0.5,v:14,show:P=>P.dtype==='phone'&&P.pcable},
+  {k:'plt',l:'Forkantens tykkelse',min:2,max:8,st:0.5,v:4,show:P=>P.dtype==='phone'},
+  {k:'pst',l:'Rygstøttens tykkelse',min:3,max:10,st:0.5,v:5,show:P=>P.dtype==='phone'},
+  {k:'pbt',l:'Bundens tykkelse',min:2,max:10,st:0.5,v:4,show:P=>P.dtype==='phone'},
+  {k:'pdev',l:'Vis enhed med højden',min:60,max:300,st:5,v:150,show:P=>P.dtype==='phone'},
+  // hovedtelefoner
+  {sec:'Holder',show:P=>P.dtype==='head'},
+  {k:'hmount',l:'Montering',type:'select',opts:[['desk','Klemme på bordkanten'],['skadis','IKEA SKÅDIS']],v:'desk',show:P=>P.dtype==='head'},
+  {k:'hw2',l:'Hvilefladens bredde',min:15,max:80,st:1,v:35,show:P=>P.dtype==='head'},
+  {k:'hL',l:'Krogens længde',min:25,max:120,st:1,v:55,show:P=>P.dtype==='head'},
+  {k:'hat',l:'Krogens tykkelse',min:3,max:12,st:0.5,v:6,show:P=>P.dtype==='head'},
+  {k:'htip',l:'Spidsens højde',min:0,max:30,st:0.5,v:10,show:P=>P.dtype==='head'},
+  {k:'hang',l:'Hældning opad (°)',min:0,max:30,st:1,v:5,show:P=>P.dtype==='head'},
+  {k:'hdrop',l:'Afstand under bordpladen',min:2,max:60,st:1,v:10,show:P=>P.dtype==='head'&&P.hmount==='desk'},
+  {k:'T',l:'Bordpladens tykkelse',min:8,max:60,st:0.5,v:20,show:P=>P.dtype==='head'&&P.hmount==='desk'},
+  {k:'th',l:'Klemmens tykkelse',min:2.5,max:8,st:0.5,v:4,show:P=>P.dtype==='head'&&P.hmount==='desk'},
+  {k:'jaw',l:'Klemmens længde',min:10,max:60,st:1,v:25,show:P=>P.dtype==='head'&&P.hmount==='desk'},
+  {k:'sq',l:'Klemkraft',min:0,max:2,st:0.1,v:0.8,show:P=>P.dtype==='head'&&P.hmount==='desk'},
+  {k:'hhp',l:'Bagpladens højde (mindst)',min:10,max:120,st:1,v:30,show:P=>P.dtype==='head'&&P.hmount==='skadis'},
+  {k:'hbt',l:'Bagpladens tykkelse',min:2,max:6,st:0.1,v:3,show:P=>P.dtype==='head'&&P.hmount==='skadis'},
+  {k:'Tb',l:'SKÅDIS-pladens tykkelse',min:3,max:8,st:0.1,v:5,show:P=>P.dtype==='head'&&P.hmount==='skadis'},
+  {k:'skLow',l:'Nederst på bagsiden',type:'select',opts:[['hook','Krog'],['stub','Tap'],['none','Ingen']],v:'hook',show:P=>P.dtype==='head'&&P.hmount==='skadis'},
+  {k:'hookPos',l:'Krogens placering',type:'select',opts:[['side','I siden (ingen support)'],['center','I midten (kræver support)'],['both','I begge sider (kræver support)']],v:'side',show:P=>P.dtype==='head'&&P.hmount==='skadis'},
+  // penne
+  {sec:'Penneholder',show:P=>P.dtype==='pens'},
+  {k:'pshape',l:'Form',type:'select',opts:[['round','Rund'],['hex','Sekskant'],['square','Firkant'],['honey','Bikube (flere rør)']],v:'round',show:P=>P.dtype==='pens'},
+  {k:'pd',l:'Størrelse (diameter / bredde)',min:30,max:160,st:1,v:70,show:P=>P.dtype==='pens'&&P.pshape!=='honey'},
+  {k:'pcell',l:'Rørenes størrelse',min:15,max:60,st:0.5,v:30,show:P=>P.dtype==='pens'&&P.pshape==='honey'},
+  {k:'pcells',l:'Antal rør',type:'select',num:true,opts:[['3','3'],['4','4'],['7','7']],v:7,show:P=>P.dtype==='pens'&&P.pshape==='honey'},
+  {k:'ph',l:P=>P.pshape==='honey'?'Højeste rørs højde':'Højde',min:20,max:200,st:1,v:100,show:P=>P.dtype==='pens'},
+  {k:'pr',l:'Hjørneradius',min:1,max:30,st:0.5,v:8,show:P=>P.dtype==='pens'&&P.pshape==='square'},
+  {k:'pdiv',l:'Skillekors (4 rum)',type:'check',v:false,show:P=>P.dtype==='pens'&&P.pshape!=='honey'},
+  {k:'pt',l:'Vægtykkelse',min:0.8,max:4,st:0.1,v:2,show:P=>P.dtype==='pens'},
+  {k:'pfb',l:'Bundtykkelse',min:1,max:6,st:0.5,v:2,show:P=>P.dtype==='pens'},
+  // laptop
+  {sec:'Laptop-fødder',show:P=>P.dtype==='laptop'},
+  {note:'To fødder lægges under bagkanten af din laptop, så den hælder ind mod dig – bedre arbejdsstilling og køling.',show:P=>P.dtype==='laptop'},
+  {k:'lHb',l:'Højde bagerst',min:10,max:120,st:1,v:40,show:P=>P.dtype==='laptop'},
+  {k:'lang',l:'Laptoppens hældning (°)',min:0,max:30,st:0.5,v:12,show:P=>P.dtype==='laptop'},
+  {k:'lL',l:'Fodens længde',min:30,max:200,st:1,v:70,show:P=>P.dtype==='laptop'},
+  {k:'lw',l:'Fodens bredde',min:10,max:80,st:1,v:25,show:P=>P.dtype==='laptop'},
+  {k:'llip',l:'Stop bagerst',min:0,max:20,st:0.5,v:6,show:P=>P.dtype==='laptop'},
+  {k:'lcount',l:'Antal fødder i filen',min:1,max:4,st:1,v:2,show:P=>P.dtype==='laptop'},
+ ],
+ make(P){return buildDesk(P);},
+ setup(m,S,P){if(m.view)S.mesh(m.view,0x2b7a78);else S.mesh(m.tris,0x2b7a78);
+   if(P.dtype==='phone'&&m.ghost)S.mesh(m.ghost,0x9aa3a8,null,true);
+   if(P.dtype==='head'&&m.skadis){const o=[];box(o,-P.hw2/2-40,P.hw2/2+40,0,P.Tb,-40,m.skadis.top+30);S.mesh(o,0xe8e2d6,null,true);}
+   if(P.dtype==='head'&&m.ghost&&m.ghost.x0!==undefined){const g=m.ghost,o=[];box(o,g.x0,g.x1,g.y0,g.y1,g.z0,g.z1);S.mesh(o,0xc9bfae,null,true);}},
+ files(m,P){const nm={phone:'telefonstander',head:'hovedtelefonholder',pens:'penneholder',laptop:'laptopfoedder'}[P.dtype];return [{name:`${nm}_${m.dims.map(v=>Math.round(v)).join('x')}`,tris:m.tris}];},
+ stats(m,P){const r=[['Mål',m.dims.map(f1).join(' × ')]];
+   if(P.dtype==='phone')r.push(['Til enheder',`op til ${f1(P.pdt)} mm tykke, ${P.pa}° hældning`]);
+   if(P.dtype==='pens')r.push(['Rum',String(m.n)]);
+   if(P.dtype==='laptop')r.push(['Højde forrest / bagerst',`${f1(m.Hf)} / ${f1(P.lHb)} mm`]);
+   return r;},
+ tips:P=>P.dtype==='phone'?['Printes liggende på siden (som i filen) – så bliver rygstøtten stærk, og der skal ingen support til.','Mål telefonens tykkelse med cover på og læg 0,5–1 mm til.','Til en tablet: gør den bredere (100–150 mm) og rygstøtten længere.']
+   :P.dtype==='head'?['Printes liggende på siden (som i filen) – ingen support'+(P.hmount==='skadis'&&P.hookPos!=='side'?', undtagen under krogen':'')+'.',...(P.hmount==='desk'?['Klemmen skubbes ind over bordkanten; krogen hænger under bordpladen.']:[]),'Brug 4 perimetre – krogen skal bære hovedtelefonerne hele tiden.']
+   :P.dtype==='pens'?['Printes som den står, med åbningen opad – ingen support.','“Vase mode” kan bruges til den runde/sekskantede uden skillekors, hvis du vil spare filament.']
+   :['Printes liggende på siden (som i filen) – ingen support.','Læg en stump gummi eller filt under fødderne, så de ikke glider.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -934,7 +1056,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','indsats','batteri','kabel','stik','lys','skilt','beslag'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -948,6 +1070,8 @@ const ICONS={
  lys:'<path d="M12 3c1.8 2.2 2.6 3.7 2.6 5.1a2.6 2.6 0 0 1-5.2 0C9.4 6.7 10.2 5.2 12 3z"/><path d="M5 14h14v3.5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M12 11v3"/>',
  skilt:'<path d="M3.5 7.5h12.7l4.3 4.5-4.3 4.5H3.5z"/><path d="M7 12h5.5"/>',
  grid:'<rect x="3" y="3" width="8" height="8" rx="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.8"/>',
+ skadis:'<rect x="4" y="3" width="16" height="18" rx="2"/><rect x="7.2" y="6" width="2.2" height="5" rx="1.1"/><rect x="14.6" y="6" width="2.2" height="5" rx="1.1"/><rect x="10.9" y="13" width="2.2" height="5" rx="1.1"/>',
+ bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
