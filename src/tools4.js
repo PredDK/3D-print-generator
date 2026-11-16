@@ -163,3 +163,47 @@ function buildDesk(P){
   if(P.dtype==='pens')return buildPens(P);
   return buildLaptop(P);
 }
+
+// ================= SLANGEADAPTER =================
+// drejet profil: lukket polygon i (r,z) roteres om z-aksen
+function revolve(o,prof,seg=128){const t=[];const n=prof.length;
+  for(let i=0;i<n;i++){const [r0,z0]=prof[i],[r1,z1]=prof[(i+1)%n];
+    for(let k=0;k<seg;k++){const a=2*Math.PI*k/seg,b=2*Math.PI*((k+1)%seg)/seg,ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);
+      Q(t,[r0*ca,r0*sa,z0],[r0*cb,r0*sb,z0],[r1*cb,r1*sb,z1],[r1*ca,r1*sa,z1]);}}
+  let v=0;for(let i=0;i<t.length;i+=9){v+=t[i]*(t[i+4]*t[i+8]-t[i+5]*t[i+7])-t[i+1]*(t[i+3]*t[i+8]-t[i+5]*t[i+6])+t[i+2]*(t[i+3]*t[i+7]-t[i+4]*t[i+6]);}
+  if(v<0)for(let i=0;i<t.length;i+=9)for(let j=0;j<3;j++){const a=t[i+3+j];t[i+3+j]=t[i+6+j];t[i+6+j]=a;}
+  for(const x of t)o.push(x);}
+function buildAdapter(P){
+  const warn=[],o=[],t=P.at2,tol=P.tol,tp=Math.tan(P.taper*Math.PI/180);
+  // én ende: radius for inder- og yderside ved spidsen og ved roden
+  const end=(D,type,L)=>{if(type==='out'){const rr0=D/2-tol/2,tipR=Math.max(rr0-L*tp,rr0-3,rr0*0.7),inn=r=>Math.max(r-t,Math.min(1,r*0.4));return {oTip:tipR,oRoot:rr0,iTip:inn(tipR),iRoot:inn(rr0)};}
+    const ri=D/2+tol/2,tipR=ri+Math.min(L*tp,3);return {iTip:tipR,iRoot:ri,oTip:tipR+t,oRoot:ri+t};};
+  const A=end(P.aD,P.aType,P.aL),B=end(P.bD,P.bType,P.bL);
+  if([A,B].some(e=>e.oTip-e.iTip<t-0.01||e.oRoot-e.iRoot<t-0.01)||Math.min(A.iTip,A.iRoot,B.iTip,B.iRoot)<2)warn.push('Væggen er for tyk i forhold til diameteren – gør den tyndere eller enden større.');
+  const need=Math.max(Math.abs(B.oRoot-A.oRoot),Math.abs(B.iRoot-A.iRoot));
+  let Lt=P.lt2;if(Lt<need){Lt=Math.ceil(need*10)/10;warn.push(`Overgangen er gjort ${f1n(Lt)} mm lang, så den kan printes uden support (højst 45°).`);}
+  const z1=P.aL,z2=z1+Lt,z3=z2+P.bL;
+  // yderside med evt. riller (kun på ender der går ind i en slange)
+  const barbs=(zs,ze,rs,re,up)=>{const pts=[],h=P.bh,p=P.bp,len=Math.abs(ze-zs)-2,n=Math.floor(len/p);const R=z=>rs+(re-rs)*(z-zs)/(ze-zs);
+    if(n<1)return [[zs,rs],[ze,re]];
+    pts.push([zs,rs]);
+    for(let k=0;k<n;k++){const a=up?zs+1+k*p:zs-1-k*p,b=up?a+p:a-p;pts.push([a,R(a)],[b,R(b)+h],[b,R(b)]);}
+    pts.push([ze,re]);return pts;};
+  let outer=[];
+  if(P.aType==='out'&&P.aBarb)outer.push(...barbs(0,z1,A.oTip,A.oRoot,true));else outer.push([0,A.oTip],[z1,A.oRoot]);
+  if(P.bType==='out'&&P.bBarb)outer.push(...barbs(z3,z2,B.oTip,B.oRoot,false).reverse());else outer.push([z2,B.oRoot],[z3,B.oTip]);
+  const inner=[[0,A.iTip],[z1,A.iRoot],[z2,B.iRoot],[z3,B.iTip]];
+  // stopkant (45° underside) ved overgangen
+  if(P.stop){const zs=z1+Lt/2,rS=Math.max(A.oRoot,B.oRoot)+P.sh2,base=r=>r;
+    const rAt=z=>{for(let i=0;i+1<outer.length;i++){const [za,ra]=outer[i],[zb,rb]=outer[i+1];if(z>=za&&z<=zb&&zb>za)return ra+(rb-ra)*(z-za)/(zb-za);}return Math.max(A.oRoot,B.oRoot);};
+    let c0=zs;while(c0>0&&rS-rAt(c0)>(zs-c0)/1.25)c0-=0.1;const c1=zs+2;
+    if(c0>0.5&&c1<z3-0.5){outer=outer.filter(([z])=>z<c0||z>c1);const ins=[[c0,rAt(c0)],[zs,rS],[c1,rS],[c1+0.01,rAt(c1)]];
+      const idx=outer.findIndex(([z])=>z>c1);outer.splice(idx<0?outer.length:idx,0,...ins);}
+    else warn.push('Der er ikke plads til stopkanten – gør overgangen længere.');}
+  outer.sort((p,q)=>p[0]-q[0]);
+  const dd=a=>a.filter((p,i)=>{const q=a[(i+a.length-1)%a.length];return Math.abs(p[0]-q[0])>1e-6||Math.abs(p[1]-q[1])>1e-6;});
+  const prof=dd([...inner.map(([z,r])=>[r,z]),...outer.slice().reverse().map(([z,r])=>[r,z])]);
+  revolve(o,prof,P.seg||128);
+  const ro=Math.max(...outer.map(p=>p[1]));
+  return {tris:o,warn,dims:[2*ro,2*ro,z3],L:z3,Lt,minID:2*Math.min(A.iTip,A.iRoot,B.iTip,B.iRoot),A,B};
+}

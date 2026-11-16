@@ -735,6 +735,38 @@ TOOLS.push({id:'bord',name:'Skrivebord',dl:'Download STL',
    :['Printes liggende på siden (som i filen) – ingen support.','Læg en stump gummi eller filt under fødderne, så de ikke glider.'],
 });
 
+
+// SLANGEADAPTER
+const endDefs=(x,nm,D,ty)=>[{sec:nm},
+  {k:x+'Type',l:'Enden skal',type:'select',opts:[['out','Ind i slange/rør'],['in','Uden på rør/studs']],v:ty},
+  {k:x+'D',l:P=>P[x+'Type']==='out'?'Slangens/rørets indvendige diameter':'Rørets/studsens udvendige diameter',min:5,max:150,st:0.1,v:D},
+  {k:x+'L',l:'Længde',min:8,max:120,st:1,v:35},
+  {k:x+'Barb',l:'Riller (holder bedre i en blød slange)',type:'check',v:ty==='out',show:P=>P[x+'Type']==='out'}];
+TOOLS.push({id:'adapter',name:'Adapter',dl:'Download STL',
+ init:{},
+ defs:[
+  {note:'Mål med en skydelære og skriv målet præcist – frigangen lægges til automatisk. Enderne er svagt koniske, så de kiler sig fast.'},
+  ...endDefs('a','Ende A (nederst)',32,'out'),
+  ...endDefs('b','Ende B (øverst)',50,'in'),
+  {sec:'Adapter'},
+  {k:'lt2',l:'Overgangens længde',min:0,max:120,st:1,v:20},
+  {k:'at2',l:'Vægtykkelse',min:1.2,max:6,st:0.1,v:2.4},
+  {k:'taper',l:'Konisk (grader)',min:0,max:3,st:0.1,v:1},
+  {k:'tol',l:'Frigang',min:0,max:1,st:0.05,v:0.2},
+  {k:'stop',l:'Stopkant ved overgangen',type:'check',v:false},
+  {k:'sh2',l:'Stopkantens højde',min:1,max:10,st:0.5,v:3,show:P=>P.stop},
+  {k:'bh',l:'Rillernes højde',min:0.3,max:2,st:0.1,v:0.8,show:P=>(P.aType==='out'&&P.aBarb)||(P.bType==='out'&&P.bBarb)},
+  {k:'bp',l:'Afstand mellem riller',min:2,max:12,st:0.5,v:5,show:P=>(P.aType==='out'&&P.aBarb)||(P.bType==='out'&&P.bBarb)},
+ ],
+ make(P){return buildAdapter(P);},
+ setup(m,S,P){S.mesh(m.tris,0x2b7a78);},
+ files(m,P){const f=v=>String(+v.toFixed(1)).replace('.',',');return [{name:`slangeadapter_${f(P.aD)}${P.aType==='out'?'i':'u'}-${f(P.bD)}${P.bType==='out'?'i':'u'}`,tris:m.tris}];},
+ stats(m,P){const d=(D,ty)=>ty==='out'?`ind i Ø${f1(D)}`:`uden på Ø${f1(D)}`;
+   return [['Ende A',d(P.aD,P.aType)],['Ende B',d(P.bD,P.bType)],['Længde i alt',`${f1(m.L)} mm`],['Mindste lysning',`Ø${f1(m.minID)} mm`],['Største ydermål',`Ø${f1(m.dims[0])} mm`]];},
+ tips:P=>['Printes stående som i filen – ingen support. Overgangen er højst 45°.','Brug 3–4 perimetre og evt. PETG, hvis den skal sidde på et varmt eller hårdt brugt værktøj.',
+   'Sidder den for løst eller stramt, så justér “Frigang” med 0,1 mm – eller øg “Konisk”, så den kiler sig bedre fast.','Typiske støvsugermål: rør Ø32 eller Ø35 mm, men mål altid selv – de varierer.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -1056,7 +1088,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -1072,6 +1104,7 @@ const ICONS={
  grid:'<rect x="3" y="3" width="8" height="8" rx="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.8"/>',
  skadis:'<rect x="4" y="3" width="16" height="18" rx="2"/><rect x="7.2" y="6" width="2.2" height="5" rx="1.1"/><rect x="14.6" y="6" width="2.2" height="5" rx="1.1"/><rect x="10.9" y="13" width="2.2" height="5" rx="1.1"/>',
  bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
+ adapter:'<path d="M4 6h5v12H4zM9 8.5l6-1.5v10l-6-1.5M15 7h5v10h-5"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}

@@ -21,6 +21,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Indsats** | Indsatser med slidser til USB-A, USB-C, micro-USB, SD- og microSD-kort. Kan tilpasses til en skuffe eller æske. Også bits (1/4" sekskant) og bor med størrelsen skrevet under hvert hul. |
 | **Batterier** | Holder til AA, AAA, C, D, 9V, 18650 og knapceller (CR2032/CR2025) – bland frit, med typen skrevet ved hver række og evt. magneter i bunden. |
 | **Beslag** | Hængsel der printes samlet (print-in-place), vinkelbeslag med afstivning samt lige, L-, T- og krydsplader – alle med forsænkede skruehuller. |
+| **Adapter** | Slangeadapter mellem to størrelser (fx støvsuger): hver ende kan gå ind i en slange eller uden på et rør, med egen diameter og længde, koniske ender, riller og evt. stopkant. |
 | **Skilte** | Skilte og mærker med hævet eller fordybet tekst og evt. ramme. Tape, magneter, skruer eller klemme på hyldekanten. |
 
 Alle mål er i mm.
@@ -38,7 +39,7 @@ Alle mål er i mm.
 
 - **Gem:** gemmer opsætninger i din egen browser.
 - **Delekode:** kopiér en kode, som en anden kan indlæse. Den åbner automatisk den rigtige fane.
-- **Direkte link til en fane:** fx `#skuffer`, `#bakke`, `#holder`, `#indsats`, `#batteri`, `#kabel`, `#stik`, `#lys`, `#skilt`, `#grid`, `#beslag`, `#skadis`, `#bord`.
+- **Direkte link til en fane:** fx `#skuffer`, `#bakke`, `#holder`, `#indsats`, `#batteri`, `#kabel`, `#stik`, `#lys`, `#skilt`, `#grid`, `#beslag`, `#skadis`, `#bord`, `#adapter`.
 
 ## Kode
 
