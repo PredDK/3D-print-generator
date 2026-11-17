@@ -14,7 +14,7 @@ function armProfile(o,bt,vb,L,at,tip,ang,w,z0=0){
 }
 // SKÅDIS-bagplade med krog(e). Returnerer den nødvendige bund (vb) og om der skal support
 function skNeedVb(P,top){let v=top-SK.bh-SK.Ld-3;if((P.skLow||'none')!=='none')v=Math.min(v,top-SK.pitch-SK.bh-SK.Ld-1.5);return v;}
-function skHooks(o,P,top,vb,w){
+function skWallHooks(o,P,top,vb,w){
   const bt=P.sbt,A=-bt+0.3,pos=P.hookPos||'side';
   let zs=[0];if(pos==='center')zs=[w/2-SK.tw/2];
   else if(pos==='both'){const k=Math.floor((w-SK.tw)/SK.pitch);zs=k>=1?[0,k*SK.pitch]:[0];}
@@ -73,7 +73,7 @@ function buildSkadisItem(P){
   }
   // bagplade + kroge
   extrude(o,[[-bt,vb],[0,vb],[0,top],[-bt,top]],[],0,w,MAP_Z);
-  const hk=skHooks(o,P,top,vb,w);
+  const hk=skWallHooks(o,P,top,vb,w);
   const {view,mny}=wallView(o,w);
   return {tris:o,view,warn,needsSupport:hk.support,skadis:{Tb:P.Tb,top:top-mny},dims:dimsOf(o),w,...extra};
 }
@@ -116,7 +116,7 @@ function buildHeadphone(P){
     const Q={...P,sbt:P.hbt},need=skNeedVb(Q,0),vb=Math.min(-P.hhp,need);
     armProfile(o,P.hbt,vb,L,at,tip,P.hang,w);
     extrude(o,[[-P.hbt,vb],[0,vb],[0,0],[-P.hbt,0]],[],0,w,MAP_Z);
-    const hk=skHooks(o,Q,0,vb,w);const {view,mny}=wallView(o,w);
+    const hk=skWallHooks(o,Q,0,vb,w);const {view,mny}=wallView(o,w);
     return {tris:o,view,warn,needsSupport:hk.support,skadis:{Tb:P.Tb,top:-mny},dims:dimsOf(o)};
   }
   // bordkant: klemme over kanten, krogen hænger under bordpladen

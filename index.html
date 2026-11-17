@@ -1474,7 +1474,7 @@ function armProfile(o,bt,vb,L,at,tip,ang,w,z0=0){
 }
 // SKÅDIS-bagplade med krog(e). Returnerer den nødvendige bund (vb) og om der skal support
 function skNeedVb(P,top){let v=top-SK.bh-SK.Ld-3;if((P.skLow||'none')!=='none')v=Math.min(v,top-SK.pitch-SK.bh-SK.Ld-1.5);return v;}
-function skHooks(o,P,top,vb,w){
+function skWallHooks(o,P,top,vb,w){
   const bt=P.sbt,A=-bt+0.3,pos=P.hookPos||'side';
   let zs=[0];if(pos==='center')zs=[w/2-SK.tw/2];
   else if(pos==='both'){const k=Math.floor((w-SK.tw)/SK.pitch);zs=k>=1?[0,k*SK.pitch]:[0];}
@@ -1533,7 +1533,7 @@ function buildSkadisItem(P){
   }
   // bagplade + kroge
   extrude(o,[[-bt,vb],[0,vb],[0,top],[-bt,top]],[],0,w,MAP_Z);
-  const hk=skHooks(o,P,top,vb,w);
+  const hk=skWallHooks(o,P,top,vb,w);
   const {view,mny}=wallView(o,w);
   return {tris:o,view,warn,needsSupport:hk.support,skadis:{Tb:P.Tb,top:top-mny},dims:dimsOf(o),w,...extra};
 }
@@ -1576,7 +1576,7 @@ function buildHeadphone(P){
     const Q={...P,sbt:P.hbt},need=skNeedVb(Q,0),vb=Math.min(-P.hhp,need);
     armProfile(o,P.hbt,vb,L,at,tip,P.hang,w);
     extrude(o,[[-P.hbt,vb],[0,vb],[0,0],[-P.hbt,0]],[],0,w,MAP_Z);
-    const hk=skHooks(o,Q,0,vb,w);const {view,mny}=wallView(o,w);
+    const hk=skWallHooks(o,Q,0,vb,w);const {view,mny}=wallView(o,w);
     return {tris:o,view,warn,needsSupport:hk.support,skadis:{Tb:P.Tb,top:-mny},dims:dimsOf(o)};
   }
   // bordkant: klemme over kanten, krogen hænger under bordpladen
@@ -1666,6 +1666,114 @@ function buildAdapter(P){
   revolve(o,prof,P.seg||128);
   const ro=Math.max(...outer.map(p=>p[1]));
   return {tris:o,warn,dims:[2*ro,2*ro,z3],L:z3,Lt,minID:2*Math.min(A.iTip,A.iRoot,B.iTip,B.iRoot),A,B};
+}
+
+
+// ================= UDSUGNINGSARM =================
+// fejet rør: ringe (cirkler) vinkelret på en sti, med varierende inder-/yderradius
+function sweepTube(o,S,N=96){
+  const ring=(s,r)=>{const p=[];for(let k=0;k<N;k++){const f=2*Math.PI*k/N,c=Math.cos(f),si=Math.sin(f);
+    p.push([s.c[0]+r*(c*s.N[0]+si*s.B[0]),s.c[1]+r*(c*s.N[1]+si*s.B[1]),s.c[2]+r*(c*s.N[2]+si*s.B[2])]);}return p;};
+  const O=S.map(s=>ring(s,s.ro)),I=S.map(s=>ring(s,s.ri)),t=[];
+  for(let j=0;j+1<S.length;j++)for(let k=0;k<N;k++){const k1=(k+1)%N;Q(t,O[j][k],O[j][k1],O[j+1][k1],O[j+1][k]);Q(t,I[j][k],I[j+1][k],I[j+1][k1],I[j][k1]);}
+  const L=S.length-1;for(let k=0;k<N;k++){const k1=(k+1)%N;Q(t,O[0][k],I[0][k],I[0][k1],O[0][k1]);Q(t,O[L][k],O[L][k1],I[L][k1],I[L][k]);}
+  let v=0;for(let i=0;i<t.length;i+=9)v+=t[i]*(t[i+4]*t[i+8]-t[i+5]*t[i+7])-t[i+1]*(t[i+3]*t[i+8]-t[i+5]*t[i+6])+t[i+2]*(t[i+3]*t[i+7]-t[i+4]*t[i+6]);
+  if(v<0)for(let i=0;i<t.length;i+=9)for(let j=0;j<3;j++){const a=t[i+3+j];t[i+3+j]=t[i+6+j];t[i+6+j]=a;}
+  for(const x of t)o.push(x);
+}
+// sti: lodret stykke, bue (vinkel al, radius Rb) mod +x, derefter lige. Returnerer funktion s -> ramme
+function bendPath(z0,hv,al,Rb){const La=al*Rb;
+  return s=>{if(s<=hv)return {c:[0,0,z0+s],T:[0,0,1],N:[1,0,0],B:[0,1,0]};
+    if(s<=hv+La){const th=(s-hv)/Rb;return {c:[Rb-Rb*Math.cos(th),0,z0+hv+Rb*Math.sin(th)],T:[Math.sin(th),0,Math.cos(th)],N:[Math.cos(th),0,-Math.sin(th)],B:[0,1,0]};}
+    const e=s-hv-La,c0=[Rb-Rb*Math.cos(al),0,z0+hv+Rb*Math.sin(al)],T=[Math.sin(al),0,Math.cos(al)];
+    return {c:[c0[0]+e*T[0],0,c0[2]+e*T[2]],T,N:[Math.cos(al),0,-Math.sin(al)],B:[0,1,0]};};}
+// fælles mål for drejeleddet
+function armDims(P){const Rc=P.aid/2,Rs=Rc+P.spw,Rb=Rs+P.rc,Rof=Rb+P.cw,k=Rof-Rs,kc=Math.min(k,Rof-Rb-1.2),hs=P.hs,gd=1.2,zg=hs*0.45;
+  const bore=P.aod/2+P.pc,ros=bore+P.sw2;return {Rc,Rs,Rb,Rof,k,kc,hs,gd,zg,bore,ros,Z0:hs+kc+P.rc};}
+// rør-delen over koblingen: lodret, bue, overgang, muffe
+function armSocket(o,P,D,z0,riStart,riChamfer){
+  const al=(P.jtype==='swivel'?0:P.jang)*Math.PI/180,ro0=D.Rof,Rbend=Math.max(ro0,D.ros)+1.5,hv=riChamfer?Math.max(P.hv,riStart-D.Rc+0.5):P.hv;
+  const path=bendPath(z0,hv,al,Rbend),La=al*Rbend,S=[],add=(s,ro,ri)=>{const f=path(s);S.push({...f,ro,ri});};
+  let s=0;add(0,ro0,riStart);
+  if(riChamfer){add(riStart-D.Rc,ro0,D.Rc);}
+  add(hv,ro0,D.Rc);
+  for(let k=1;k<=24&&La>0;k++)add(hv+La*k/24,ro0,D.Rc);
+  const tl=Math.max(4,Math.abs(ro0-D.ros)*1.2),s1=hv+La+tl;add(s1,D.ros,D.Rc);
+  if(D.bore>D.Rc+0.01)add(s1,D.ros,D.bore);   // anslag for røret
+  add(s1+P.sd2,D.ros,D.bore);
+  sweepTube(o,S,P.seg||96);
+  const end=path(s1+P.sd2);return {end,al};
+}
+function buildArmMale(P,D){
+  const o=[],{Rc,Rs,Rof,k,hs,gd,zg}=D;
+  // tap med V-rille + 45° skulder (drejet profil)
+  const prof=[[Rc,0],[Rs-0.4,0],[Rs,0.4],[Rs,zg-gd],[Rs-gd,zg],[Rs,zg+gd],[Rs,hs],[Rof,hs+k],[Rof,hs+k+0.6],[Rc,hs+k+0.6]];
+  revolve(o,prof,P.seg||96);
+  const r=armSocket(o,P,D,hs+k,Rc,false);return {tris:o,...r};
+}
+function slitRing(ri,ro,gap,rot,n=96){// C-formet ring med spalte omkring vinklen rot
+  const gO=Math.asin(Math.min(0.99,gap/2/ro)),gI=Math.asin(Math.min(0.99,gap/2/ri)),p=[];
+  for(let k=0;k<=n;k++){const a=rot+gO+(2*Math.PI-2*gO)*k/n;p.push([ro*Math.cos(a),ro*Math.sin(a)]);}
+  for(let k=n;k>=0;k--){const a=rot+gI+(2*Math.PI-2*gI)*k/n;p.push([ri*Math.cos(a),ri*Math.sin(a)]);}
+  return p;}
+function buildArmFemale(P,D){
+  const o=[],{Rb,Rof,kc,hs,gd,zg,Z0}=D,warn=[];
+  const zb=Z0+0.6,zr=Z0-zg,rd=gd-0.35,gap=P.slit,rot=Math.PI;
+  // klemringen bygges som tynde skiver: forsænkning ved mundingen, boring, V-vulst
+  const rin=z=>{let r=Rb;if(z<kc)r=Rb+(kc-z);const d=Math.abs(z-zr);if(d<rd)r=Math.min(r,Rb-(rd-d));return r;};
+  const dz=0.2;for(let z=0;z<zb-1e-6;z+=dz){const z1=Math.min(zb,z+dz);extrude(o,slitRing(rin((z+z1)/2),Rof,gap,rot,P.seg||96),[],z,z1,MAP_Z);}
+  // ører med skruehul og møtrikfælde
+  const nR=(P.nutAF+0.3)/Math.sqrt(3),et=P.nutT+2.4,ew=Math.max(P.sh2d+6,2*nR+3),x0=-Rof-ew,x1=-Math.max(Rb+1,Rof-1.6),ze=zb-0.01,xm=(x0+x1-1.6)/2,zm=ze/2;
+  const ear=[[x0,0],[x1,0],[x1,ze],[x0,ze]];
+  extrude(o,ear,[circ(xm,zm,P.sh2d/2,32)],-(gap/2+et),-gap/2,MAP_Y);
+  const nutOk=zm-nR>0.8&&ze-zm-nR>0.8;if(!nutOk)warn.push('Møtrikken er for stor til klemringen – gør tappen længere eller brug en mindre skrue.');
+  layered(o,ear,[{d:et,hole:circ(xm,zm,P.sh2d/2,32),g:'h'},...(nutOk?[{d:P.nutT,hole:hexPoly(xm,zm,P.nutAF+0.3).map(([x,z])=>{const dx=x-xm,dz=z-zm,c=Math.cos(Math.PI/6),q=Math.sin(Math.PI/6);return [xm+c*dx-q*dz,zm+q*dx+c*dz];}),g:'h'}]:[])],gap/2,gap/2+et,true,MAP_Y);
+  const r=armSocket(o,P,D,zb-0.3,Rb,true);return {tris:o,warn,...r,zb};
+}
+function buildKnob(P){const o=[],R=Math.max(P.kd2/2,((P.headAF+0.3)/Math.sqrt(3)+2)/0.82,(P.sh2d/2+2)/0.82),n=6,pts=[];
+  for(let k=0;k<n*16;k++){const a=2*Math.PI*k/(n*16),r=R*(0.82+0.18*Math.cos(n*a));pts.push([r*Math.cos(a),r*Math.sin(a)]);}
+  layered(o,pts,[{d:P.kh,hole:circ(0,0,P.sh2d/2,32),g:'h'},{d:P.headH,hole:hexPoly(0,0,P.headAF+0.3),g:'h'}],0,P.kh,false);
+  return o;}
+function buildFlange(P){const o=[],warn=[],bore=P.aod/2+P.pc,t=P.ft,ros=bore+P.sw2,dMin=2*(ros+3)+(P.fn>0?2*(P.shd2+4):6);let Df=P.fd;if(Df<dMin){Df=Math.ceil(dMin);warn.push(`Flangen er gjort Ø${Df} mm, så der er plads til røret${P.fn>0?' og skruerne':''}.`);}
+  const nh=P.fn|0,rh=Df/2-Math.max(P.shd2/2+3,6),feats=[];
+  for(let i=0;i<nh;i++){const a=2*Math.PI*i/nh;feats.push(...screwFeats(rh*Math.cos(a),rh*Math.sin(a),P.fsd,P.shd2,t,'f'+i));}
+  if(rh-P.shd2/2<ros+1)warn.push('Flangen er for lille til skruehullerne – gør den større.');
+  layered(o,circ(0,0,Df/2,128),[{d:t,hole:circ(0,0,bore,128),g:'c'},...feats],0,t,true);
+  revolve(o,[[bore,t-0.2],[ros,t-0.2],[ros+3,t-0.2],[ros,t+2.8],[ros,t+P.fh],[bore,t+P.fh]],P.seg||128);
+  return {tris:o,warn,dims:[Df,Df,t+P.fh]};}
+function buildHood(P){const o=[],warn=[],bore=P.aod/2+P.pc,w=P.hw3,Rm=P.hmd/2,ros=bore+P.sw2;
+  const dr=Rm-ros,Lc=Math.max(P.hl3,dr+1);if(P.hl3<dr+1)warn.push(`Tragten er gjort ${f1n(Lc)} mm høj, så den kan printes uden support (højst 45°).`);
+  // munding nederst (printes på pladen), muffe øverst
+  revolve(o,[[Rm-w,0],[Rm,0],[Rm,P.hlip],[ros,P.hlip+Lc],[ros,P.hlip+Lc+P.sd2],[bore,P.hlip+Lc+P.sd2],[bore,P.hlip+Lc],[Math.max(bore-1.5,P.aid/2),P.hlip+Lc-1.5],[Rm-w,P.hlip+w*0.4]],P.seg||128);
+  return {tris:o,warn,dims:[2*Rm,2*Rm,P.hlip+Lc+P.sd2]};}
+function tf(tris,fn){const o=new Array(tris.length);for(let i=0;i<tris.length;i+=3){const p=fn(tris[i],tris[i+1],tris[i+2]);o[i]=p[0];o[i+1]=p[1];o[i+2]=p[2];}return o;}
+function bboxOf(t){const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<t.length;i++){const k=i%3;mn[k]=Math.min(mn[k],t[i]);mx[k]=Math.max(mx[k],t[i]);}return {mn,mx};}
+function buildArm(P){
+  const ty=P.jtype;
+  if(ty==='flange'){const m=buildFlange(P);return {...m,print:m.tris,view:m.tris,ghost:null};}
+  if(ty==='hood'){const m=buildHood(P);return {...m,print:m.tris,view:m.tris,ghost:null};}
+  const D=armDims(P),warn=[];
+  if(D.Rc<5)warn.push('Lysningen er meget lille.');
+  if(P.aid>=P.aod)warn.push('Lysningen er større end rørets ydermål – tjek målene.');
+  const M=buildArmMale(P,D),F=buildArmFemale(P,D);warn.push(...F.warn);
+  // printlayout: hun, han og knop ved siden af hinanden
+  const bf=bboxOf(F.tris),bm=bboxOf(M.tris),gapX=8;
+  const fP=tf(F.tris,(x,y,z)=>[x-bf.mn[0],y,z]),wF=bf.mx[0]-bf.mn[0];
+  const mP=tf(M.tris,(x,y,z)=>[x-bm.mn[0]+wF+gapX,y,z]),wM=bm.mx[0]-bm.mn[0];
+  let print=fP.concat(mP);
+  if(P.knob){const kn=buildKnob(P);print=print.concat(tf(kn,(x,y,z)=>[x+wF+wM+2*gapX+P.kd2/2,y,z]));}
+  // samlet visning: hanen vendt om oven på hunnen og drejet
+  const ph=P.vrot*Math.PI/180,c=Math.cos(ph),s=Math.sin(ph);
+  const mV=tf(M.tris,(x,y,z)=>{const X=c*x-s*y,Y=s*x+c*y;return [X,-Y,D.Z0-z];});
+  // rør som spøgelser i muffer
+  const pipe=(e,len)=>{const t=[],st=[];const R=P.aod/2;for(let k=0;k<=1;k++){const cc=[e.end.c[0]+e.end.T[0]*(k*len-P.sd2+2),e.end.c[1],e.end.c[2]+e.end.T[2]*(k*len-P.sd2+2)];st.push({c:cc,T:e.end.T,N:e.end.N,B:e.end.B,ro:R,ri:Math.max(1,P.aid/2)});}sweepTube(t,st,48);return t;};
+  const gF=pipe(F,120),gM=tf(pipe(M,120),(x,y,z)=>{const X=c*x-s*y,Y=s*x+c*y;return [X,-Y,D.Z0-z];});
+  // vinkel mellem de to rør i den viste stilling
+  const tF=F.end.T,tm=[M.end.T[0],M.end.T[1],M.end.T[2]],tM=[c*tm[0]-s*tm[1],-(s*tm[0]+c*tm[1]),-tm[2]];
+  const bend=180-Math.acos(Math.max(-1,Math.min(1,tF[0]*tM[0]+tF[1]*tM[1]+tF[2]*tM[2])))*180/Math.PI;
+  const bp=bboxOf(print);
+  return {tris:print,print,view:F.tris.concat(mV),ghost:gF.concat(gM),warn,D,bend,maxBend:2*(ty==='swivel'?0:P.jang),
+    dims:[bp.mx[0]-bp.mn[0],bp.mx[1]-bp.mn[1],bp.mx[2]-bp.mn[2]],hF:bf.mx[2],hM:bm.mx[2]};
 }
 
 /*GEOM-END*/
@@ -2438,6 +2546,64 @@ TOOLS.push({id:'adapter',name:'Adapter',dl:'Download STL',
    'Sidder den for løst eller stramt, så justér “Frigang” med 0,1 mm – eller øg “Konisk”, så den kiler sig bedre fast.','Typiske støvsugermål: rør Ø32 eller Ø35 mm, men mål altid selv – de varierer.'],
 });
 
+
+// UDSUGNINGSARM
+TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'jtype',l:'Del',type:'select',opts:[['joint','Vinkelled'],['swivel','Lige drejeled'],['flange','Bordflange'],['hood','Sugetragt']],v:'joint'},
+  {note:'Hvert led består af to halvdele, der drejer 360° mod hinanden. Med 45° halvdele går leddet fra lige til 90° bøjning. Løsn knoppen for at dreje, stram den for at låse. Rørene imellem køber du selv i den længde, du vil have – så bestemmer du selv antallet af led.',show:P=>P.jtype==='joint'},
+  {note:'Et lige drejeled lader armen dreje rundt om sin egen akse – fx nederst ved bordet.',show:P=>P.jtype==='swivel'},
+  {sec:'Rør'},
+  {k:'aod',l:'Rørets udvendige diameter',min:16,max:160,st:0.1,v:50},
+  {k:'aid',l:'Lysning gennem leddet',min:10,max:150,st:0.5,v:44},
+  {k:'sd2',l:'Rørets indstik i muffen',min:10,max:80,st:1,v:30},
+  {k:'sw2',l:'Muffens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8},
+  {k:'pc',l:'Frigang til røret',min:0,max:1,st:0.05,v:0.3},
+  {sec:'Led',show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'jang',l:'Vinkel pr. halvdel',type:'select',num:true,opts:[['30','30° (led 0–60°)'],['45','45° (led 0–90°)']],v:45,show:P=>P.jtype==='joint'},
+  {k:'vrot',l:'Vis leddet drejet (°)',min:0,max:360,st:5,v:0,show:P=>P.jtype==='joint'},
+  {k:'hs',l:'Tappens længde',min:8,max:30,st:0.5,v:14,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'spw',l:'Tappens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'cw',l:'Klemringens vægtykkelse',min:2.5,max:8,st:0.1,v:4,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'rc',l:'Frigang i drejeleddet',min:0.1,max:0.8,st:0.05,v:0.3,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'slit',l:'Klemspalte',min:1,max:4,st:0.1,v:2,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'hv',l:'Lige stykke over koblingen',min:2,max:40,st:0.5,v:5,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {sec:'Skrue og knop',show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'sh2d',l:'Skruehul (M5 = 5,4)',min:3,max:8.5,st:0.1,v:5.4,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'nutAF',l:'Møtrikkens nøglevidde',min:5,max:13,st:0.1,v:8,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'nutT',l:'Møtrikkens tykkelse',min:2,max:8,st:0.1,v:4.2,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'knob',l:'Fingerskrue (knop) med i filen',type:'check',v:true,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'kd2',l:'Knoppens diameter',min:15,max:50,st:0.5,v:28,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'kh',l:'Knoppens højde',min:6,max:20,st:0.5,v:10,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'headAF',l:'Skruehovedets nøglevidde',min:5,max:13,st:0.1,v:8,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'headH',l:'Skruehovedets højde',min:2,max:8,st:0.1,v:3.5,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {sec:'Bordflange',show:P=>P.jtype==='flange'},
+  {k:'fd',l:'Flangens diameter',min:40,max:250,st:1,v:110,show:P=>P.jtype==='flange'},
+  {k:'ft',l:'Flangens tykkelse',min:3,max:12,st:0.5,v:5,show:P=>P.jtype==='flange'},
+  {k:'fh',l:'Kravens højde',min:5,max:80,st:1,v:25,show:P=>P.jtype==='flange'},
+  {k:'fn',l:'Skruehuller',min:0,max:8,st:1,v:4,show:P=>P.jtype==='flange'},
+  {k:'fsd',l:'Skruediameter',min:2,max:8,st:0.5,v:4.5,show:P=>P.jtype==='flange'&&P.fn>0},
+  {k:'shd2',l:'Skruehovedets diameter',min:4,max:16,st:0.5,v:9,show:P=>P.jtype==='flange'&&P.fn>0},
+  {note:'Røret stikkes ned gennem flangen og et hul i bordpladen; kraven holder det lodret.',show:P=>P.jtype==='flange'},
+  {sec:'Sugetragt',show:P=>P.jtype==='hood'},
+  {k:'hmd',l:'Mundingens diameter',min:40,max:250,st:1,v:140,show:P=>P.jtype==='hood'},
+  {k:'hl3',l:'Tragtens højde',min:10,max:150,st:1,v:50,show:P=>P.jtype==='hood'},
+  {k:'hw3',l:'Vægtykkelse',min:1.2,max:5,st:0.1,v:2.4,show:P=>P.jtype==='hood'},
+  {k:'hlip',l:'Lige kant ved mundingen',min:0,max:30,st:0.5,v:4,show:P=>P.jtype==='hood'},
+ ],
+ make(P){return buildArm(P);},
+ setup(m,S,P){S.mesh(m.view,0xf1efea);if(m.ghost)S.mesh(m.ghost,0x9aa3a8,null,true);},
+ files(m,P){const nm={joint:`udsugning_vinkelled_${P.jang}grader`,swivel:'udsugning_drejeled',flange:'udsugning_bordflange',hood:'udsugning_sugetragt'}[P.jtype];
+   return [{name:`${nm}_roer${String(P.aod).replace('.',',')}mm`,tris:m.print}];},
+ stats(m,P){if(P.jtype==='flange'||P.jtype==='hood')return [['Mål',m.dims.map(f1).join(' × ')],['Til rør',`Ø${f1(P.aod)} mm`]];
+   const D=m.D,bl=Math.ceil((2*(P.nutT+2.4)+P.slit+(P.knob?P.kh-P.headH:3)+2)/5)*5;
+   return [['Til rør',`Ø${f1(P.aod)} mm`],...(P.jtype==='joint'?[['Vist bøjning',`${Math.round(m.bend)}° (0–${m.maxBend}°)`]]:[]),['Leddets ydermål',`Ø${f1(2*D.Rof)} mm`],['Lysning',`Ø${f1(2*D.Rc)} mm`],['Skrue',`M5 × ${bl} + møtrik`]];},
+ tips:P=>P.jtype==='flange'?['Printes fladt – ingen support.','Skru flangen fast oven på bordet med 3–4 skruer.']
+   :P.jtype==='hood'?['Printes med mundingen nedad (som i filen) – tragten er højst 45° og kræver ingen support.']
+   :['Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -2759,7 +2925,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -2776,6 +2942,7 @@ const ICONS={
  skadis:'<rect x="4" y="3" width="16" height="18" rx="2"/><rect x="7.2" y="6" width="2.2" height="5" rx="1.1"/><rect x="14.6" y="6" width="2.2" height="5" rx="1.1"/><rect x="10.9" y="13" width="2.2" height="5" rx="1.1"/>',
  bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
  adapter:'<path d="M4 6h5v12H4zM9 8.5l6-1.5v10l-6-1.5M15 7h5v10h-5"/>',
+ arm:'<path d="M5 21v-8.5a3.5 3.5 0 0 1 3.5-3.5H15"/><circle cx="16.5" cy="9" r="2.5"/><path d="M18.3 10.8 21 16"/><path d="M3 21h4"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}

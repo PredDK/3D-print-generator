@@ -767,6 +767,64 @@ TOOLS.push({id:'adapter',name:'Adapter',dl:'Download STL',
    'Sidder den for løst eller stramt, så justér “Frigang” med 0,1 mm – eller øg “Konisk”, så den kiler sig bedre fast.','Typiske støvsugermål: rør Ø32 eller Ø35 mm, men mål altid selv – de varierer.'],
 });
 
+
+// UDSUGNINGSARM
+TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'jtype',l:'Del',type:'select',opts:[['joint','Vinkelled'],['swivel','Lige drejeled'],['flange','Bordflange'],['hood','Sugetragt']],v:'joint'},
+  {note:'Hvert led består af to halvdele, der drejer 360° mod hinanden. Med 45° halvdele går leddet fra lige til 90° bøjning. Løsn knoppen for at dreje, stram den for at låse. Rørene imellem køber du selv i den længde, du vil have – så bestemmer du selv antallet af led.',show:P=>P.jtype==='joint'},
+  {note:'Et lige drejeled lader armen dreje rundt om sin egen akse – fx nederst ved bordet.',show:P=>P.jtype==='swivel'},
+  {sec:'Rør'},
+  {k:'aod',l:'Rørets udvendige diameter',min:16,max:160,st:0.1,v:50},
+  {k:'aid',l:'Lysning gennem leddet',min:10,max:150,st:0.5,v:44},
+  {k:'sd2',l:'Rørets indstik i muffen',min:10,max:80,st:1,v:30},
+  {k:'sw2',l:'Muffens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8},
+  {k:'pc',l:'Frigang til røret',min:0,max:1,st:0.05,v:0.3},
+  {sec:'Led',show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'jang',l:'Vinkel pr. halvdel',type:'select',num:true,opts:[['30','30° (led 0–60°)'],['45','45° (led 0–90°)']],v:45,show:P=>P.jtype==='joint'},
+  {k:'vrot',l:'Vis leddet drejet (°)',min:0,max:360,st:5,v:0,show:P=>P.jtype==='joint'},
+  {k:'hs',l:'Tappens længde',min:8,max:30,st:0.5,v:14,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'spw',l:'Tappens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'cw',l:'Klemringens vægtykkelse',min:2.5,max:8,st:0.1,v:4,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'rc',l:'Frigang i drejeleddet',min:0.1,max:0.8,st:0.05,v:0.3,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'slit',l:'Klemspalte',min:1,max:4,st:0.1,v:2,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'hv',l:'Lige stykke over koblingen',min:2,max:40,st:0.5,v:5,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {sec:'Skrue og knop',show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'sh2d',l:'Skruehul (M5 = 5,4)',min:3,max:8.5,st:0.1,v:5.4,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'nutAF',l:'Møtrikkens nøglevidde',min:5,max:13,st:0.1,v:8,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'nutT',l:'Møtrikkens tykkelse',min:2,max:8,st:0.1,v:4.2,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'knob',l:'Fingerskrue (knop) med i filen',type:'check',v:true,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
+  {k:'kd2',l:'Knoppens diameter',min:15,max:50,st:0.5,v:28,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'kh',l:'Knoppens højde',min:6,max:20,st:0.5,v:10,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'headAF',l:'Skruehovedets nøglevidde',min:5,max:13,st:0.1,v:8,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {k:'headH',l:'Skruehovedets højde',min:2,max:8,st:0.1,v:3.5,show:P=>(P.jtype==='joint'||P.jtype==='swivel')&&P.knob},
+  {sec:'Bordflange',show:P=>P.jtype==='flange'},
+  {k:'fd',l:'Flangens diameter',min:40,max:250,st:1,v:110,show:P=>P.jtype==='flange'},
+  {k:'ft',l:'Flangens tykkelse',min:3,max:12,st:0.5,v:5,show:P=>P.jtype==='flange'},
+  {k:'fh',l:'Kravens højde',min:5,max:80,st:1,v:25,show:P=>P.jtype==='flange'},
+  {k:'fn',l:'Skruehuller',min:0,max:8,st:1,v:4,show:P=>P.jtype==='flange'},
+  {k:'fsd',l:'Skruediameter',min:2,max:8,st:0.5,v:4.5,show:P=>P.jtype==='flange'&&P.fn>0},
+  {k:'shd2',l:'Skruehovedets diameter',min:4,max:16,st:0.5,v:9,show:P=>P.jtype==='flange'&&P.fn>0},
+  {note:'Røret stikkes ned gennem flangen og et hul i bordpladen; kraven holder det lodret.',show:P=>P.jtype==='flange'},
+  {sec:'Sugetragt',show:P=>P.jtype==='hood'},
+  {k:'hmd',l:'Mundingens diameter',min:40,max:250,st:1,v:140,show:P=>P.jtype==='hood'},
+  {k:'hl3',l:'Tragtens højde',min:10,max:150,st:1,v:50,show:P=>P.jtype==='hood'},
+  {k:'hw3',l:'Vægtykkelse',min:1.2,max:5,st:0.1,v:2.4,show:P=>P.jtype==='hood'},
+  {k:'hlip',l:'Lige kant ved mundingen',min:0,max:30,st:0.5,v:4,show:P=>P.jtype==='hood'},
+ ],
+ make(P){return buildArm(P);},
+ setup(m,S,P){S.mesh(m.view,0xf1efea);if(m.ghost)S.mesh(m.ghost,0x9aa3a8,null,true);},
+ files(m,P){const nm={joint:`udsugning_vinkelled_${P.jang}grader`,swivel:'udsugning_drejeled',flange:'udsugning_bordflange',hood:'udsugning_sugetragt'}[P.jtype];
+   return [{name:`${nm}_roer${String(P.aod).replace('.',',')}mm`,tris:m.print}];},
+ stats(m,P){if(P.jtype==='flange'||P.jtype==='hood')return [['Mål',m.dims.map(f1).join(' × ')],['Til rør',`Ø${f1(P.aod)} mm`]];
+   const D=m.D,bl=Math.ceil((2*(P.nutT+2.4)+P.slit+(P.knob?P.kh-P.headH:3)+2)/5)*5;
+   return [['Til rør',`Ø${f1(P.aod)} mm`],...(P.jtype==='joint'?[['Vist bøjning',`${Math.round(m.bend)}° (0–${m.maxBend}°)`]]:[]),['Leddets ydermål',`Ø${f1(2*D.Rof)} mm`],['Lysning',`Ø${f1(2*D.Rc)} mm`],['Skrue',`M5 × ${bl} + møtrik`]];},
+ tips:P=>P.jtype==='flange'?['Printes fladt – ingen support.','Skru flangen fast oven på bordet med 3–4 skruer.']
+   :P.jtype==='hood'?['Printes med mundingen nedad (som i filen) – tragten er højst 45° og kræver ingen support.']
+   :['Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -1088,7 +1146,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -1105,6 +1163,7 @@ const ICONS={
  skadis:'<rect x="4" y="3" width="16" height="18" rx="2"/><rect x="7.2" y="6" width="2.2" height="5" rx="1.1"/><rect x="14.6" y="6" width="2.2" height="5" rx="1.1"/><rect x="10.9" y="13" width="2.2" height="5" rx="1.1"/>',
  bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
  adapter:'<path d="M4 6h5v12H4zM9 8.5l6-1.5v10l-6-1.5M15 7h5v10h-5"/>',
+ arm:'<path d="M5 21v-8.5a3.5 3.5 0 0 1 3.5-3.5H15"/><circle cx="16.5" cy="9" r="2.5"/><path d="M18.3 10.8 21 16"/><path d="M3 21h4"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}
