@@ -81,7 +81,14 @@ function bboxOf(t){const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<t.le
 function buildArm(P){
   const ty=P.jtype;
   if(ty==='flange'){const m=buildFlange(P);return {...m,print:m.tris,view:m.tris,ghost:null};}
+  if(ty==='hood'&&P.hshape==='square'){const m=buildHoodSquare(P);let print=m.tris;
+    if(m.grille){const b=bboxOf(m.tris),g=bboxOf(m.grille);print=print.concat(tf(m.grille,(x,y,z)=>[x+b.mx[0]-g.mn[0]+8,y,z]));}
+    return {...m,tris:print,print,view:m.tris,ghost:m.grille?tf(m.grille,(x,y,z)=>[x,y,z-P.gt2-0.5]):null};}
   if(ty==='hood'){const m=buildHood(P);return {...m,print:m.tris,view:m.tris,ghost:null};}
+  if(ty==='elbow'){const m=buildElbow(P);return {...m,print:m.tris,view:m.tris,ghost:null};}
+  if(ty==='mount'){const m=buildArmMount(P);let print=m.tris;
+    if(m.knob){const b=bboxOf(m.tris),R=Math.max(36,P.nutAF8*2.6)/2;print=print.concat(tf(m.knob,(x,y,z)=>[x+b.mx[0]+R+8,y+b.mn[1]+R,z]));}
+    return {...m,tris:print,print};}
   const D=armDims(P),warn=[];
   if(D.Rc<5)warn.push('Lysningen er meget lille.');
   if(P.aid>=P.aod)warn.push('Lysningen er større end rørets ydermål – tjek målene.');
@@ -105,3 +112,98 @@ function buildArm(P){
   return {tris:print,print,view:F.tris.concat(mV),ghost:gF.concat(gM),warn,D,bend,maxBend:2*(ty==='swivel'?0:P.jang),
     dims:[bp.mx[0]-bp.mn[0],bp.mx[1]-bp.mn[1],bp.mx[2]-bp.mn[2]],hF:bf.mx[2],hM:bm.mx[2]};
 }
+
+// ---------- lukket skal ud fra ringe (yder + inder) med samme antal punkter ----------
+function loftShell(o,OR,IR){const t=[],n=OR[0].pts.length,P3=(r,k)=>[r.pts[k][0],r.pts[k][1],r.z];
+  for(let j=0;j+1<OR.length;j++)for(let k=0;k<n;k++){const k1=(k+1)%n;Q(t,P3(OR[j],k),P3(OR[j],k1),P3(OR[j+1],k1),P3(OR[j+1],k));}
+  for(let j=0;j+1<IR.length;j++)for(let k=0;k<n;k++){const k1=(k+1)%n;Q(t,P3(IR[j],k),P3(IR[j+1],k),P3(IR[j+1],k1),P3(IR[j],k1));}
+  const a=OR[0],b=IR[0],c=OR[OR.length-1],d=IR[IR.length-1];
+  for(let k=0;k<n;k++){const k1=(k+1)%n;Q(t,P3(a,k),P3(b,k),P3(b,k1),P3(a,k1));Q(t,P3(c,k),P3(c,k1),P3(d,k1),P3(d,k));}
+  let v=0;for(let i=0;i<t.length;i+=9)v+=t[i]*(t[i+4]*t[i+8]-t[i+5]*t[i+7])-t[i+1]*(t[i+3]*t[i+8]-t[i+5]*t[i+6])+t[i+2]*(t[i+3]*t[i+7]-t[i+4]*t[i+6]);
+  if(v<0)for(let i=0;i<t.length;i+=9)for(let j=0;j<3;j++){const q=t[i+3+j];t[i+3+j]=t[i+6+j];t[i+6+j]=q;}
+  for(const x of t)o.push(x);}
+const toCircle=(pts,R)=>pts.map(([x,y])=>{const a=Math.atan2(y,x);return [R*Math.cos(a),R*Math.sin(a)];});
+const lerpP=(A,B,f)=>A.map((p,i)=>[p[0]+(B[i][0]-p[0])*f,p[1]+(B[i][1]-p[1])*f]);
+const maxShift=(A,B)=>Math.max(...A.map((p,i)=>Math.hypot(B[i][0]-p[0],B[i][1]-p[1])));
+
+// ---------- firkantet sugetragt med filterkammer ----------
+function buildHoodSquare(P){const o=[],warn=[],t=P.hw3,bore=P.aod/2+P.pc,ros=bore+P.sw2,Rc=Math.min(P.aid/2,bore-0.8),lw=P.flw;
+  const Wi=P.fw+1,Hi=P.fh+1,ri=1.5,seg=6,hc=P.ft+P.fch;
+  const NN=P.seg||96,rp=(w,h)=>[...Array(NN)].map((_,k)=>{const a=2*Math.PI*(k+0.5)/NN,c=Math.cos(a),q=Math.sin(a),R=Math.min(w/2/Math.max(1e-9,Math.abs(c)),h/2/Math.max(1e-9,Math.abs(q)));return [R*c,R*q];});
+  const inR=rp(Wi,Hi),outR=rp(Wi+2*t,Hi+2*t),inL=rp(Wi-2*lw,Hi-2*lw);
+  const cO=toCircle(outR,ros),cI=toCircle(inL,Rc);
+  let Lt=Math.max(P.hl3,maxShift(outR,cO)+1,maxShift(inL,cI)+1);
+  if(Lt>P.hl3+0.01)warn.push(`Tragten er gjort ${f1n(Lt)} mm høj, så den kan printes uden support (højst 45°).`);
+  if(Math.min(Wi,Hi)-2*lw<2*Rc)warn.push('Filteret er mindre end røret – vælg et større filter eller mindre rør.');
+  const z1=hc+lw,z2=z1+Lt,z3=z2+P.sd2,N=8;
+  const OR=[{pts:outR,z:0},{pts:outR,z:z1}];for(let k=1;k<=N;k++)OR.push({pts:lerpP(outR,cO,k/N),z:z1+Lt*k/N});OR.push({pts:cO,z:z3});
+  const IR=[{pts:inR,z:0},{pts:inR,z:hc},{pts:inL,z:z1}];for(let k=1;k<=N;k++)IR.push({pts:lerpP(inL,cI,k/N),z:z1+Lt*k/N});
+  IR.push({pts:toCircle(inL,bore),z:z2});IR.push({pts:toCircle(inL,bore),z:z3});
+  loftShell(o,OR,IR);
+  let grille=null;
+  if(P.grille){grille=[];const gw=Wi-2*P.gcl,gh=Hi-2*P.gcl,bar=2,cells=Math.max(2,Math.round(Math.min(gw,gh)/18)),holes=[];
+    const cw=(gw-2*3-(cells-1)*bar)/cells,chh=(gh-2*3-(cells-1)*bar)/cells;
+    for(let i=0;i<cells;i++)for(let j=0;j<cells;j++){const x=-gw/2+3+i*(cw+bar),y=-gh/2+3+j*(chh+bar);holes.push([[x,y],[x+cw,y],[x+cw,y+chh],[x,y+chh]]);}
+    extrude(grille,[[-gw/2,-gh/2],[gw/2,-gh/2],[gw/2,gh/2],[-gw/2,gh/2]],holes,0,P.gt2,MAP_Z);}
+  return {tris:o,grille,warn,dims:[Wi+2*t,Hi+2*t,z3]};}
+
+// ---------- fast rørbøjning ----------
+function buildElbow(P){const o=[],warn=[],bore=P.aod/2+P.pc,ros=bore+P.sw2,Rc=Math.min(P.aid/2,bore-0.8),al=P.eang*Math.PI/180,Rb=ros+1.5+P.erad;
+  const path=bendPath(0,P.sd2+(bore-Rc)+1,al,Rb),La=al*Rb,hv=P.sd2+(bore-Rc)+1,S=[],add=(s,ro,ri)=>S.push({...path(s),ro,ri});
+  add(0,ros,bore);add(P.sd2,ros,bore);add(P.sd2+(bore-Rc),ros,Rc);add(hv,ros,Rc);
+  for(let k=1;k<=32&&La>0;k++)add(hv+La*k/32,ros,Rc);
+  add(hv+La+1,ros,Rc);add(hv+La+1,ros,bore);add(hv+La+1+P.sd2,ros,bore);
+  sweepTube(o,S,P.seg||96);
+  if(P.eang>45)warn.push('Over 45° hænger den øverste muffe ud over – slå support til (kun fra printpladen).');
+  const b=bboxOf(o);return {tris:o,warn,dims:[b.mx[0]-b.mn[0],b.mx[1]-b.mn[1],b.mx[2]-b.mn[2]]};}
+
+// ---------- beslag: bordkant-klemme, skruet på bordet eller væg ----------
+// profil i (x,y): x mod bordet/væggen (+), y op. Ekstruderes langs z (= bredden), printes liggende.
+function buildArmMount(P){const o=[],warn=[],bore=P.aod/2+P.pc,ws=P.mws,Rob=bore+ws,Rc=Math.min(P.aid/2,bore-0.8);
+  P={...P,bh:0.8,bp:5};const hose=P.mbot==='hose',hR=P.hoseD/2,hRi=Math.max(2,Math.min(Rc,hR-2.4)),hb=P.hbarb;
+  const htop=Math.max(Rob,bore*Math.SQRT2+ws*0.8),Rs=Math.max(Rob,hose?hR+(hb?P.bh:0):0),W=Rs+htop,zc=Rs,mt=P.mmount;
+  const sp=mt==='wall'?P.mtp:P.msp,xc=-(sp+P.mgap+Rob);
+  const T=P.T,tj=P.nutT8+4,th=P.mth,J=P.mjaw;
+  let yb,Lb=Math.max(P.mHs+3,mt==='clamp'?T+tj+th:mt==='screw'?P.mdrop+P.mtp:0);
+  if(mt==='clamp')yb=-T-tj;else if(mt==='screw')yb=P.mtp-Lb;else yb=0;
+  // hylster: firkantet klods med dråbeformet hul (spidsen opad i printretningen), slangestuds forneden
+  const N=P.seg||96,ang=k=>2*Math.PI*k/N;
+  const circR=(r,dv=0)=>[...Array(N)].map((_,k)=>[r*Math.cos(ang(k)),r*Math.sin(ang(k))+dv]);
+  const tear=(r,dv=0)=>[...Array(N)].map((_,k)=>{const a=ang(k);let d=Math.abs(((a+Math.PI/2)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI);
+    const R=d<Math.PI/4?r/Math.cos(Math.PI/4-d):r;return [R*Math.cos(a),R*Math.sin(a)+dv];});   // spids mod -v (= op i print)
+  const sq=(h)=>[...Array(N)].map((_,k)=>{const a=ang(k),c=Math.cos(a),q=Math.sin(a),R=Math.min(Rob/Math.max(1e-9,Math.abs(c)),q>0?Rs/q:q<0?htop/(-q):1e9);return [R*c,R*q];});
+  const OR=[],IR=[],dv=hose?(Rs-hR-(hb?P.bh:0)):0;   // studsen flyttes ned, så den ligger på printpladen
+  if(hose){const y0=yb-P.hoseL;OR.push({pts:circR(hR-(hb?0.6:0),dv),z:y0});
+    if(hb){const n=Math.floor((P.hoseL-3)/P.bp);for(let k=0;k<n;k++){const a=y0+1+k*P.bp,b=a+P.bp;OR.push({pts:circR(hR,dv),z:a},{pts:circR(hR+P.bh,dv),z:b},{pts:circR(hR,dv),z:b});}}
+    OR.push({pts:circR(hR,dv),z:yb},{pts:sq(Rob),z:yb},{pts:sq(Rob),z:yb+Lb});
+    IR.push({pts:tear(hRi,dv),z:y0},{pts:tear(hRi,dv),z:yb+3},{pts:tear(bore),z:yb+3},{pts:tear(bore),z:yb+Lb});}
+  else{OR.push({pts:sq(Rob),z:yb},{pts:sq(Rob),z:yb+Lb});IR.push({pts:tear(bore),z:yb},{pts:tear(bore),z:yb+Lb});}
+  {const t=[];loftShell(t,OR,IR);for(const v of tf(t,(u,v,Y)=>[xc+u,Y,zc-v]))o.push(v);}
+  // forbindelse fra hylster til monteringsdelen
+  const xw0=xc+Rob-1,xw1=-sp+0.1;
+  if(mt==='clamp'){
+    extrude(o,[[-sp,-T-tj],[0,-T-tj],[0,th],[-sp,th]],[],0,W,MAP_Z);                  // ryg langs bordkanten
+    extrude(o,[[-sp,0],[J,0],[J,th],[-sp,th]],[],0,W,MAP_Z);                           // overkæbe
+    const xs=Math.min(J-P.nutAF8/Math.sqrt(3)-3,Math.max(8,J*0.6)),nr=(P.nutAF8+0.3)/Math.sqrt(3);
+    if(J<2*nr+8)warn.push('Kæben er for kort til skruen – gør den længere.');
+    layered(o,[[-sp,0],[J,0],[J,W],[-sp,W]],[{d:tj,hole:circ(xs,zc,P.sd8/2,32),g:'s'},{d:P.nutT8,hole:hexPoly(xs,zc,P.nutAF8+0.3),g:'s'}],T,T+tj,true,MAP_Y); // underkæbe med møtrikfælde
+    extrude(o,[[xw0,Math.max(yb,-T-tj)],[xw1,Math.max(yb,-T-tj)],[xw1,Math.min(yb+Lb,th)],[xw0,Math.min(yb+Lb,th)]],[],0,W,MAP_Z);
+  }else if(mt==='screw'){
+    extrude(o,[[-sp,yb],[0,yb],[0,P.mtp],[-sp,P.mtp]],[],0,W,MAP_Z);                   // ryg langs bordkanten
+    const Lp=P.mLp,feats=[];let nh=Math.max(1,P.mnh|0);
+    while(nh>1&&Lp/(nh+0.6)<P.mshd+2)nh--;if(nh<(P.mnh|0))warn.push(`Der er kun plads til ${nh} skruehul${nh>1?'ler':''} i pladen – gør den længere for flere.`);
+    if(Lp/(nh+0.6)<P.mshd/2+1.5||P.mshd+1>W)warn.push('Pladen er for kort/smal til skruerne.');
+    for(let i=0;i<nh;i++){const x=Lp*(i+1)/(nh+0.6);feats.push(...screwFeats(x,zc,P.msd,P.mshd,P.mtp,'p'+i));}
+    layered(o,[[-sp,0],[Lp,0],[Lp,W],[-sp,W]],feats,-P.mtp,0,false,MAP_Y);             // plade oven på bordet
+    extrude(o,[[xw0,yb],[xw1,yb],[xw1,P.mtp],[xw0,P.mtp]],[],0,W,MAP_Z);
+  }else{
+    const e=Math.max(P.mshd+6,14),y0=yb-e,y1=yb+Lb+e;
+    layered(o,[[y0,0],[y1,0],[y1,W],[y0,W]],[...screwFeats(y0+e/2,zc,P.msd,P.mshd,sp,'a'),...screwFeats(y1-e/2,zc,P.msd,P.mshd,sp,'b')],-sp,0,false,MAP_X);
+    extrude(o,[[xw0,yb],[xw1,yb],[xw1,yb+Lb],[xw0,yb+Lb]],[],0,W,MAP_Z);
+  }
+  let knob=null;if(mt==='clamp'&&P.mknob)knob=buildKnob({kd2:Math.max(36,P.nutAF8*2.6),kh:12,sh2d:P.sd8,headAF:P.nutAF8,headH:P.nutT8+0.5});
+  // visning: stående (y op). Bord/væg som spøgelse
+  const view=tf(o,(x,y,z)=>[x,z-zc,y]),b=bboxOf(o);
+  let ghost=[];if(mt==='wall')box(ghost,0.2,30,-150,150,yb-60,yb+Lb+60);else{const yt=mt==='clamp'?0:0;box(ghost,0.2,300,-150,150,mt==='clamp'?-T:-T,0);}
+  ghost=mt==='wall'?ghost:tf(ghost,(x,y,z)=>[x,y,z]);
+  return {tris:o,knob,view,ghost,warn,dims:[b.mx[0]-b.mn[0],b.mx[1]-b.mn[1],b.mx[2]-b.mn[2]],xc,yb,Lb,W};}

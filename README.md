@@ -22,7 +22,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Batterier** | Holder til AA, AAA, C, D, 9V, 18650 og knapceller (CR2032/CR2025) – bland frit, med typen skrevet ved hver række og evt. magneter i bunden. |
 | **Beslag** | Hængsel der printes samlet (print-in-place), vinkelbeslag med afstivning samt lige, L-, T- og krydsplader – alle med forsænkede skruehuller. |
 | **Adapter** | Slangeadapter mellem to størrelser (fx støvsuger): hver ende kan gå ind i en slange eller uden på et rør, med egen diameter og længde, koniske ender, riller og evt. stopkant. |
-| **Udsugning** | Led til en udsugningsarm: vinkelled af to halvdele der drejer 360° (0–90° eller 0–60°) med klemring, M5-skrue og printet fingerskrue; lige drejeled, bordflange og sugetragt. Rørene imellem vælger du selv. |
+| **Udsugning** | Dele til en udsugningsarm: drejelige vinkelled (0–45°, 0–60° eller 0–90°) med klemring, M5-skrue og fingerskrue; fast rørbøjning; lige drejeled; beslag til bordkant (klemme), oven på bordet eller på væggen med hylster og slangestuds; rund sugetragt eller firkantet tragt med filterkammer og gitter. Rørene imellem vælger du selv. |
 | **Skilte** | Skilte og mærker med hævet eller fordybet tekst og evt. ramme. Tape, magneter, skruer eller klemme på hyldekanten. |
 
 Alle mål er i mm.
