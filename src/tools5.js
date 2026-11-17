@@ -161,7 +161,7 @@ function buildElbow(P){const o=[],warn=[],bore=P.aod/2+P.pc,ros=bore+P.sw2,Rc=Ma
 // profil i (x,y): x mod bordet/væggen (+), y op. Ekstruderes langs z (= bredden), printes liggende.
 function buildArmMount(P){const o=[],warn=[],bore=P.aod/2+P.pc,ws=P.mws,Rob=bore+ws,Rc=Math.min(P.aid/2,bore-0.8);
   P={...P,bh:0.8,bp:5};const hose=P.mbot==='hose',hR=P.hoseD/2,hRi=Math.max(2,Math.min(Rc,hR-2.4)),hb=P.hbarb;
-  const htop=Math.max(Rob,bore*Math.SQRT2+ws*0.8),Rs=Math.max(Rob,hose?hR+(hb?P.bh:0):0),W=Rs+htop,zc=Rs,mt=P.mmount;
+  const TD=P.mhole==='tear',htop=TD?Math.max(Rob,bore*Math.SQRT2+ws*0.8):Rob,Rs=Math.max(Rob,hose?hR+(hb?P.bh:0):0),W=Rs+htop,zc=Rs,mt=P.mmount;
   const sp=mt==='wall'?P.mtp:P.msp,xc=-(sp+P.mgap+Rob);
   const T=P.T,tj=P.nutT8+4,th=P.mth,J=P.mjaw;
   let yb,Lb=Math.max(P.mHs+3,mt==='clamp'?T+tj+th:mt==='screw'?P.mdrop+P.mtp:0);
@@ -169,7 +169,7 @@ function buildArmMount(P){const o=[],warn=[],bore=P.aod/2+P.pc,ws=P.mws,Rob=bore
   // hylster: firkantet klods med dråbeformet hul (spidsen opad i printretningen), slangestuds forneden
   const N=P.seg||96,ang=k=>2*Math.PI*k/N;
   const circR=(r,dv=0)=>[...Array(N)].map((_,k)=>[r*Math.cos(ang(k)),r*Math.sin(ang(k))+dv]);
-  const tear=(r,dv=0)=>[...Array(N)].map((_,k)=>{const a=ang(k);let d=Math.abs(((a+Math.PI/2)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI);
+  const tear=(r,dv=0)=>!TD?circR(r,dv):[...Array(N)].map((_,k)=>{const a=ang(k);let d=Math.abs(((a+Math.PI/2)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI);
     const R=d<Math.PI/4?r/Math.cos(Math.PI/4-d):r;return [R*Math.cos(a),R*Math.sin(a)+dv];});   // spids mod -v (= op i print)
   const sq=(h)=>[...Array(N)].map((_,k)=>{const a=ang(k),c=Math.cos(a),q=Math.sin(a),R=Math.min(Rob/Math.max(1e-9,Math.abs(c)),q>0?Rs/q:q<0?htop/(-q):1e9);return [R*c,R*q];});
   const OR=[],IR=[],dv=hose?(Rs-hR-(hb?P.bh:0)):0;   // studsen flyttes ned, så den ligger på printpladen

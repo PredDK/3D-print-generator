@@ -782,7 +782,8 @@ TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
   {k:'sw2',l:'Muffens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8},
   {k:'pc',l:'Frigang til røret',min:0,max:1,st:0.05,v:0.3},
   {sec:'Led',show:P=>P.jtype==='joint'||P.jtype==='swivel'},
-  {k:'jang',l:'Leddet kan bøje',type:'select',num:true,opts:[['22.5','0–45°'],['30','0–60°'],['45','0–90°']],v:45,show:P=>P.jtype==='joint'},
+  {k:'jang',l:'Leddet kan bøje',type:'select',num:true,opts:[['22.5','0–45°'],['30','0–60°'],['45','0–90°'],['90','Albueled (0–180°)']],v:45,show:P=>P.jtype==='joint'},
+  {note:'Albueled: hver halvdel er bøjet 90°, så begge rør står vinkelret på drejeaksen, og leddet folder i ét plan som en albue – som på de fleste udsugningsarme. Halvdelene skal printes med support under muffen.',show:P=>P.jtype==='joint'&&P.jang===90},
   {k:'vrot',l:'Vis leddet drejet (°)',min:0,max:360,st:5,v:0,show:P=>P.jtype==='joint'},
   {k:'hs',l:'Tappens længde',min:8,max:30,st:0.5,v:14,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
   {k:'spw',l:'Tappens vægtykkelse',min:1.6,max:6,st:0.1,v:2.8,show:P=>P.jtype==='joint'||P.jtype==='swivel'},
@@ -806,6 +807,7 @@ TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
   {sec:'Beslag',show:P=>P.jtype==='mount'},
   {k:'mmount',l:'Monteres',type:'select',opts:[['clamp','Klemme på bordkanten'],['screw','Skrues oven på bordet'],['wall','På væggen']],v:'clamp',show:P=>P.jtype==='mount'},
   {note:'Røret står i et hylster og kan dreje 360°. Forneden er der en studs til slangen ned til udsugningen.',show:P=>P.jtype==='mount'},
+  {k:'mhole',l:'Hullet til røret',type:'select',opts:[['round','Rundt (lidt support øverst i hullet)'],['tear','Dråbeformet (ingen support)']],v:'round',show:P=>P.jtype==='mount'},
   {k:'mHs',l:'Hylsterets dybde',min:20,max:150,st:1,v:50,show:P=>P.jtype==='mount'},
   {k:'mws',l:'Hylsterets vægtykkelse',min:2,max:8,st:0.1,v:3.5,show:P=>P.jtype==='mount'},
   {k:'mgap',l:'Afstand fra bordkant/væg',min:0,max:60,st:0.5,v:3,show:P=>P.jtype==='mount'},
@@ -845,17 +847,17 @@ TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
  ],
  make(P){return buildArm(P);},
  setup(m,S,P){S.mesh(m.view,0xf1efea);if(m.ghost)S.mesh(m.ghost,P.jtype==='mount'?0xc9bfae:0x9aa3a8,null,true);},
- files(m,P){const nm={joint:`udsugning_vinkelled_0-${2*P.jang}grader`,elbow:`udsugning_boejning_${P.eang}grader`,swivel:'udsugning_drejeled',flange:'udsugning_bordflange',mount:`udsugning_beslag_${P.mmount==='clamp'?'bordkant':P.mmount==='screw'?'bord':'vaeg'}`,hood:P.hshape==='square'?`udsugning_tragt_filter_${P.fw}x${P.fh}`:'udsugning_sugetragt'}[P.jtype];
+ files(m,P){const nm={joint:P.jang===90?'udsugning_albueled':`udsugning_vinkelled_0-${2*P.jang}grader`,elbow:`udsugning_boejning_${P.eang}grader`,swivel:'udsugning_drejeled',flange:'udsugning_bordflange',mount:`udsugning_beslag_${P.mmount==='clamp'?'bordkant':P.mmount==='screw'?'bord':'vaeg'}`,hood:P.hshape==='square'?`udsugning_tragt_filter_${P.fw}x${P.fh}`:'udsugning_sugetragt'}[P.jtype];
    return [{name:`${nm}_roer${String(P.aod).replace('.',',')}mm`,tris:m.print}];},
  stats(m,P){if(['flange','hood','elbow','mount'].includes(P.jtype))return [['Mål',m.dims.map(f1).join(' × ')],['Til rør',`Ø${f1(P.aod)} mm`],...(P.jtype==='hood'&&P.hshape==='square'?[['Filter',`${P.fw} × ${P.fh} × ${f1(P.ft)} mm`]]:[]),...(P.jtype==='mount'&&P.mmount==='clamp'?[['Klemskrue',`M8 × ${Math.ceil((P.nutT8+4+20)/5)*5} + møtrik`]]:[])];
    const D=m.D,bl=Math.ceil((2*(P.nutT+2.4)+P.slit+(P.knob?P.kh-P.headH:3)+2)/5)*5;
-   return [['Til rør',`Ø${f1(P.aod)} mm`],...(P.jtype==='joint'?[['Vist bøjning',`${Math.round(m.bend)}° (0–${m.maxBend}°)`]]:[]),['Leddets ydermål',`Ø${f1(2*D.Rof)} mm`],['Lysning',`Ø${f1(2*D.Rc)} mm`],['Skrue',`M5 × ${bl} + møtrik`]];},
- tips:P=>P.jtype==='mount'?['Printes liggende som i filen – hullet er dråbeformet (spidsen opad), så det printer uden support. Røret drejer stadig frit.','Brug 4 perimetre og 30–40 % udfyldning – beslaget bærer hele armen.',...(P.mmount==='clamp'?['Møtrikken trykkes ind i underkæben; klemskruen skrues op mod bordpladens underside med knoppen.']:[])]
+   return [['Til rør',`Ø${f1(P.aod)} mm`],...(P.jtype==='joint'?(P.jang===90?[['Vinkel mellem rørene',`${Math.round(180-m.bend)}°`]]:[['Vist bøjning',`${Math.round(m.bend)}° (0–${m.maxBend}°)`]]):[]),['Leddets ydermål',`Ø${f1(2*D.Rof)} mm`],['Lysning',`Ø${f1(2*D.Rc)} mm`],['Skrue',`M5 × ${bl} + møtrik`]];},
+ tips:P=>P.jtype==='mount'?[P.mhole==='tear'?'Printes liggende som i filen – hullet er dråbeformet (spidsen opad), så det printer uden support. Røret hviler i den runde del og drejer frit.':'Printes liggende som i filen. Toppen af det runde hul er et udhæng – slå support til (kun fra pladen) eller vælg dråbeformet hul.','Brug 4 perimetre og 30–40 % udfyldning – beslaget bærer hele armen.',...(P.mmount==='clamp'?['Møtrikken trykkes ind i underkæben; klemskruen skrues op mod bordpladens underside med knoppen.']:[])]
    :P.jtype==='elbow'?['Printes stående på den ene muffe.'+(P.eang>45?' Over 45° skal der support under den øverste muffe.':' Ingen support.')]
    :P.jtype==='hood'&&P.hshape==='square'?['Printes med mundingen nedad (som i filen) – ingen support.','Gitteret printes fladt og trykkes ind i mundingen, så filteret sidder fast. Justér frigangen, hvis det sidder for løst.']
    :P.jtype==='flange'?['Printes fladt – ingen support.','Skru flangen fast oven på bordet med 3–4 skruer.']
    :P.jtype==='hood'?['Printes med mundingen nedad (som i filen) – tragten er højst 45° og kræver ingen support.']
-   :['Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
+   :[P.jtype==='joint'&&P.jang===90?'Printes som i filen: koblingen nedad og muffen vandret ud til siden – slå support til (kun fra pladen) under muffen. Brug 3–4 perimetre.':'Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
 });
 
 // STIKDÅSE
