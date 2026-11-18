@@ -68,14 +68,17 @@ function buildSign(P,tb){
   if(shelf){
     // printes med forsiden nedad: forsiden er z=0, bagsiden z=T. Fordybet tekst åben mod z=0.
     if(tb)layered(o,out,[{d:td,hole:[[x0,yt-th],[x0+tw,yt-th],[x0+tw,yt],[x0,yt]]}],0,T,false);else prism(o,out,0,T);
-    if(tb)textFill(tb,(c0,c1,r0,r1)=>box(o,x0+c0*tb.res,x0+c1*tb.res,yt-r1*tb.res,yt-r0*tb.res,0,td));
+    // forsiden vender nedad under print, så teksten spejles – så læses den rigtigt forfra
+    if(tb)textFill(tb,(c0,c1,r0,r1)=>box(o,-(x0+c1*tb.res),-(x0+c0*tb.res),yt-r1*tb.res,yt-r0*tb.res,0,td));
     const Ts=P.Ts,ta=P.ta,J=P.jaw,sq=P.sq,yb=-Ts/2;
     // to arme (finner) der rejser sig fra bagsiden; den øverste ligger oven på hylden, den nederste griber under
     const arm=(y0,y1,bump)=>{const pr=[[y0,T-0.1],[y1,T-0.1],[y1,T+J],[y0,T+J]];
       extrude(o,pr,[],-W/2+Math.min(R,3),W/2-Math.min(R,3),MAP_X);
       if(bump&&sq>0.05){const by=bump>0?y1:y0,s=bump;const b=[[by,T+J-6],[by+s*sq,T+J-3],[by,T+J-0.5]];if(s>0)b.reverse();extrude(o,b,[],-W/2+Math.min(R,3),W/2-Math.min(R,3),MAP_X);}};
     arm(yb+Ts,yb+Ts+ta,0);arm(yb-ta,yb,1);
-    return {tris:o,warn,W,H,T:T+J,face:'down',shelfBand:[yb,yb+Ts]};
+    // visning som den sidder på hylden: forsiden mod beskueren, armene bagud
+    const toV=(x,y,z)=>[-x,z,y],view=tf(o,toV),g=[];box(g,-W/2-30,W/2+30,yb,yb+Ts,T+0.2,T+80);
+    return {tris:o,view,ghost:tf(g,toV),warn,W,H,T:T+J,face:'down',shelfBand:[yb,yb+Ts]};
   }
   // forsiden opad (z=T)
   const recFeats=!raised&&tb?[{d:td,hole:[[x0,yt-th],[x0+tw,yt-th],[x0+tw,yt],[x0,yt]]}]:[];

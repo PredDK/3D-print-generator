@@ -484,7 +484,7 @@ TOOLS.push({id:'skilt',name:'Skilte',dl:'Download STL',
  make(P){const scr=P.mount==='screw'?2*(P.shd+5):0;
    const tb=textBitmap(P.text,P.size,P.autoW?400:Math.max(4,P.W-2*P.pad),Math.max(2,P.H-2*P.pad));
    const m=buildSign(P,tb);if((P.text||'').trim()&&!tb)m.warn.push('Teksten kan ikke være der – gør skiltet større eller teksten mindre.');return m;},
- setup(m,S,P){S.mesh(m.tris,0x2b7a78);if(m.shelfBand){const o=[],[a,b]=m.shelfBand;box(o,-m.W/2-30,m.W/2+30,a,b,P.T+0.2,P.T+80);S.mesh(o,0xc9bfae,null,true);}},
+ setup(m,S,P){S.mesh(m.view||m.tris,0x2b7a78);if(m.ghost)S.mesh(m.ghost,0xc9bfae,null,true);},
  files(m,P){return [{name:`skilt_${safe(P.text||'tomt')}`,tris:m.tris}];},
  stats(m,P){return [['Mål',[m.W,m.H,m.T].map(f1).join(' × ')],['Tekst',(P.text||'').trim()?`${P.mount==='shelf'||P.style!=='raised'?'fordybet':'hævet'} ${f1(P.th)} mm`:'ingen']];},
  tips:P=>P.mount==='shelf'?['Printes med forsiden nedad (som i filen) – armene står lodret og printer uden support.','Vil du have farvet tekst, så fyld fordybningerne med maling eller voks, eller skift filament efter de første lag (ved '+f1(Math.min(P.th,P.T-0.8)).replace('.',',')+' mm).']
