@@ -1881,6 +1881,73 @@ function buildArmMount(P){const o=[],warn=[],bore=P.aod/2+P.pc,ws=P.mws,Rob=bore
   ghost=mt==='wall'?ghost:tf(ghost,(x,y,z)=>[x,y,z]);
   return {tris:o,knob,view,ghost,warn,dims:[b.mx[0]-b.mn[0],b.mx[1]-b.mn[1],b.mx[2]-b.mn[2]],xc,yb,Lb,W};}
 
+
+// ================= JULELYS-KROGE =================
+// Profil i (x,y): x = udad (væk fra huset), y = op. Ekstruderes langs z (bredden) og printes med profilen fladt.
+const DEG=Math.PI/180;
+const dedupe=(a,eps=0.3)=>a.filter((p,i)=>i===0||Math.hypot(p[0]-a[i-1][0],p[1]-a[i-1][1])>eps);
+const stroke2=(pts,t)=>strokePoly(dedupe(pts),t);
+// krog/clips under et punkt (x0,y0): lige stykke ned og en J-krog eller en klik-ring til kablet
+function lightHookPath(x0,y0,P,dir=1){
+  const pts=[],t=P.t,L=Math.max(P.drop,t+1);
+  pts.push([x0,y0]);
+  if(P.htype==='clip'){const rc=P.cd/2+0.2+t/2,cy=y0-L-rc;pts.push([x0,cy+rc]);
+    // ring rundt om kablet med åbning udad/opad
+    const a0=90*DEG,op=P.open*DEG;arcPts(pts,x0+0*dir,cy,rc,a0,a0+dir*(360*DEG-op),48);
+    return {pts,low:cy-rc-t/2};}
+  const rh=P.hr+t/2,yb=y0-L;pts.push([x0,yb]);
+  arcPts(pts,x0+dir*rh,yb,rh,dir>0?Math.PI:0,dir>0?2*Math.PI:-Math.PI,24);
+  if(P.tip>0.5)pts.push([x0+dir*2*rh,yb+P.tip]);
+  return {pts,low:yb-rh-t/2};
+}
+function buildGutterHook(P){
+  const o=[],warn=[],t=P.t,w=P.w,rb=P.bd/2,rm=rb+P.c+t/2,op=P.gop*DEG,mid=P.gdir*DEG;
+  // C-ring om den rullede kant, åbning mod renden
+  const a1=mid-op/2,a0=mid+op/2-2*Math.PI;const ring=[];ring.push([rm*Math.cos(a1),rm*Math.sin(a1)]);
+  arcPts(ring,0,0,rm,a1,a0,64);   // med uret hele vejen rundt til den anden side af åbningen
+  // krogen udgår fra ringens yderste punkt forneden (vinkel -60°)
+  const ah=-60*DEG,hx=rm*Math.cos(ah),hy=rm*Math.sin(ah);
+  const H=lightHookPath(hx,hy,P,1);
+  extrude(o,stroke2(ring,t),[],0,w,MAP_Z);
+  extrude(o,stroke2(H.pts,t),[],0,w,MAP_Z);
+  // indføringsflige på åbningens kanter, så den klikker let på
+  if(op>=150*DEG)warn.push('Åbningen er stor – clipsen kan falde af. Brug 90–130°.');
+  if(op<70*DEG)warn.push('Åbningen er lille – den bliver svær at klikke på kanten.');
+  // spøgelse: rullet kant + halvrund rende
+  const g=[],R=P.gR;extrude(g,circ(0,0,rb-0.05,48),[circ(0,0,Math.max(0.5,rb-1.2),48)],-60,w+60,MAP_Z);
+  const cx=-rb-R+0.6,hp=[];for(let k=0;k<=48;k++){const a=Math.PI+k/48*Math.PI;hp.push([cx+R*Math.cos(a),R*Math.sin(a)]);}
+  for(let k=48;k>=0;k--){const a=Math.PI+k/48*Math.PI;hp.push([cx+(R-0.8)*Math.cos(a),(R-0.8)*Math.sin(a)]);}
+  extrude(g,hp,[],-60,w+60,MAP_Z);
+  return {o,g,warn};
+}
+function buildRoofClip(P){
+  const o=[],warn=[],t=P.ct,w=P.w,E=P.E+P.c2,Lg=P.Lg,sq=P.sq2,hw=E/2;
+  // U over kanten
+  extrude(o,[[-hw-t,0],[hw+t,0],[hw+t,t],[-hw-t,t]].map(([x,y])=>[x,y]),[],0,w,MAP_Z);
+  for(const s of [-1,1]){const xi=s*hw,xo=s*(hw+t);
+    extrude(o,(s<0?[[xo,-Lg],[xi,-Lg],[xi,0.1],[xo,0.1]]:[[xi,-Lg],[xo,-Lg],[xo,0.1],[xi,0.1]]),[],0,w,MAP_Z);
+    // klemvulst og udadbøjet indføring forneden
+    const yb=-Lg,vb=[[xi,yb+6],[xi-s*sq,yb+3.5],[xi,yb+1]];if(sq>0.05)extrude(o,s<0?vb.slice().reverse():vb,[],0,w,MAP_Z);
+    const fl=[[xi,yb],[xo,yb],[xo+s*1.6,yb-2.5],[xi+s*1.6,yb-2.5]];extrude(o,s<0?fl:fl.slice().reverse(),[],0,w,MAP_Z);
+    if(P.side==='both'||(P.side==='out'&&s>0)||(P.side==='in'&&s<0)){
+      const P2={...P,t:Math.max(P.t,2)},y0=-Lg*P.hpos,H=lightHookPath(xo+s*(P2.t/2+0.5),y0,P2,s);
+      const pts=[[xo-s*t/2,y0],...H.pts];
+      extrude(o,stroke2(pts,P2.t),[],0,w,MAP_Z);}
+  }
+  if(E<6)warn.push('Kanten er meget smal.');
+  const g=[];box(g,-P.E/2,P.E/2,-150,0,-60,w+60);
+  return {o,g,warn};
+}
+function buildXmasHook(P){
+  const r=P.ltype==='roof'?buildRoofClip(P):buildGutterHook(P),w=P.w;
+  const v=t=>{const out=[];for(let i=0;i<t.length;i+=3)out.push(t[i+2]-w/2,-t[i],t[i+1]);return out;};
+  const b=bboxOf(r.o);
+  // printfil: flere stk ved siden af hinanden
+  const n=Math.max(1,P.count|0),cols=Math.ceil(Math.sqrt(n)),dx=b.mx[0]-b.mn[0]+5,dy=b.mx[1]-b.mn[1]+5;let print=[];
+  for(let i=0;i<n;i++){const cx=(i%cols)*dx-b.mn[0],cy=Math.floor(i/cols)*dy-b.mn[1];print=print.concat(tf(r.o,(x,y,z)=>[x+cx,y+cy,z]));}
+  return {tris:print,view:v(r.o),ghost:v(r.g),warn:r.warn,dims:[b.mx[0]-b.mn[0],b.mx[1]-b.mn[1],w],count:n};
+}
+
 /*GEOM-END*/
 // ---------- ZIP (uden komprimering, flere filer) ----------
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
@@ -2744,6 +2811,50 @@ TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
    :[P.jtype==='joint'&&P.jang===90?'Printes som i filen: koblingen nedad og muffen vandret ud til siden – slå support til (kun fra pladen) under muffen. Brug 3–4 perimetre.':'Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
 });
 
+
+// JULELYS-KROGE
+TOOLS.push({id:'jul',name:'Julelys',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'ltype',l:'Monteres på',type:'select',opts:[['gutter','Halvrund tagrende'],['roof','Kant på fladt tag']],v:'gutter'},
+  {sec:'Tagrende',show:P=>P.ltype==='gutter'},
+  {k:'gdim',l:'Tagrendens dimension',type:'select',opts:[['100','100 (kant 17 mm)'],['125','125 (kant 17 mm)'],['150','150 (kant 17 mm)'],['190','190 (kant 22 mm)'],['x','Andet mål']],v:'125',show:P=>P.ltype==='gutter'},
+  {k:'bd',l:'Den rullede kants diameter (d)',min:8,max:35,st:0.5,v:17,show:P=>P.ltype==='gutter'},
+  {note:'Mål evt. selv kanten med en skydelære – rullen er ofte lidt mindre end katalogets d. Clipsen klikker på kanten med åbningen ind mod renden.',show:P=>P.ltype==='gutter'},
+  {k:'c',l:'Frigang om kanten',min:0,max:2,st:0.1,v:0.4,show:P=>P.ltype==='gutter'},
+  {k:'gop',l:'Åbningens størrelse (°)',min:60,max:160,st:5,v:110,show:P=>P.ltype==='gutter'},
+  {k:'gdir',l:'Åbningens retning (°)',min:150,max:270,st:5,v:200,show:P=>P.ltype==='gutter'},
+  {sec:'Tagkant',show:P=>P.ltype==='roof'},
+  {k:'E',l:'Kantens tykkelse (inkl. aluprofil)',min:10,max:80,st:0.5,v:27,show:P=>P.ltype==='roof'},
+  {k:'Lg',l:'Klemmens ben (ned ad kanten)',min:12,max:60,st:1,v:25,show:P=>P.ltype==='roof'},
+  {k:'c2',l:'Frigang',min:0,max:2,st:0.1,v:0.4,show:P=>P.ltype==='roof'},
+  {k:'sq2',l:'Klemkraft',min:0,max:2.5,st:0.1,v:0.8,show:P=>P.ltype==='roof'},
+  {k:'ct',l:'Klemmens tykkelse',min:1.6,max:5,st:0.1,v:2.4,show:P=>P.ltype==='roof'},
+  {k:'side',l:'Krog på',type:'select',opts:[['out','Ydersiden'],['in','Indersiden'],['both','Begge sider']],v:'out',show:P=>P.ltype==='roof'},
+  {k:'hpos',l:'Krogens højde på benet (0 = top, 1 = bund)',min:0.1,max:1,st:0.05,v:0.6,show:P=>P.ltype==='roof'},
+  {sec:'Krog'},
+  {k:'htype',l:'Type',type:'select',opts:[['j','Åben krog'],['clip','Klik-ring til kablet']],v:'j'},
+  {k:'drop',l:'Afstand ned til krogen',min:0,max:60,st:1,v:12},
+  {k:'hr',l:'Krogens indvendige radius',min:2,max:15,st:0.5,v:5,show:P=>P.htype==='j'},
+  {k:'tip',l:'Spidsens højde',min:0,max:15,st:0.5,v:4,show:P=>P.htype==='j'},
+  {k:'cd',l:'Kablets diameter',min:2,max:15,st:0.1,v:6,show:P=>P.htype==='clip'},
+  {k:'open',l:'Åbning i ringen (°)',min:40,max:120,st:5,v:70,show:P=>P.htype==='clip'},
+  {sec:'Print'},
+  {k:'t',l:'Tykkelse',min:1.6,max:5,st:0.1,v:2.4},
+  {k:'w',l:'Bredde',min:5,max:30,st:0.5,v:10},
+  {k:'count',l:'Antal i filen',min:1,max:40,st:1,v:10},
+ ],
+ after(T,k){const P=T.P;if(k==='gdim'&&P.gdim!=='x'){T.setCtl('bd',P.gdim==='190'?22:17);}},
+ make(P){P.gR={'100':54,'125':62,'150':78,'190':86}[P.gdim]||60;return buildXmasHook(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xc9bfae,null,true);},
+ files(m,P){return [{name:`julelyskrog_${P.ltype==='gutter'?'tagrende_d'+String(P.bd).replace('.',','):'tagkant_'+String(P.E).replace('.',',')}mm_${m.count}stk`,tris:m.tris}];},
+ stats(m,P){return [['Mål (én)',m.dims.map(f1).join(' × ')],['Antal i filen',String(m.count)],[P.ltype==='gutter'?'Til kant':'Til tagkant',`${f1(P.ltype==='gutter'?P.bd:P.E)} mm`]];},
+ tips:P=>['Printes fladt med profilen på printpladen (som i filen) – ingen support, og krogen bliver fjedrende og stærk.',
+   'Brug PETG eller ASA udendørs – PLA bliver blødt i sol og skørt i frost.',
+   P.ltype==='gutter'?'Klik clipsen på tagrendens rullede forkant fra oven, med krogen udad. Sidder den løst, så mindsk frigangen; er den svær at få på, så gør åbningen større.':'Tryk klemmen ned over tagkanten; vulsterne nederst på benene holder den fast. Justér klemkraften, hvis den sidder for løst eller stramt.',
+   'Print et enkelt eksemplar først og prøv det, før du printer resten.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -3065,7 +3176,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm','jul'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -3083,6 +3194,7 @@ const ICONS={
  bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
  adapter:'<path d="M4 6h5v12H4zM9 8.5l6-1.5v10l-6-1.5M15 7h5v10h-5"/>',
  arm:'<path d="M5 21v-8.5a3.5 3.5 0 0 1 3.5-3.5H15"/><circle cx="16.5" cy="9" r="2.5"/><path d="M18.3 10.8 21 16"/><path d="M3 21h4"/>',
+ jul:'<path d="M3 5c3 2 6 3 9 3s6-1 9-3"/><path d="M7 7.3v2.2M12 8v2.2M17 7.3v2.2"/><path d="M7 9.5c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5zM12 10.2c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5zM17 9.5c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5z"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}

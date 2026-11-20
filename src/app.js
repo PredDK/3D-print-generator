@@ -860,6 +860,50 @@ TOOLS.push({id:'arm',name:'Udsugning',dl:'Download STL',
    :[P.jtype==='joint'&&P.jang===90?'Printes som i filen: koblingen nedad og muffen vandret ud til siden – slå support til (kun fra pladen) under muffen. Brug 3–4 perimetre.':'Printes som i filen: koblingen nedad, muffen skråt opad – ingen support. Brug 3–4 perimetre.','Saml leddet: løsn knoppen, tryk hanens tap ind i hunnens klemring, til V-rillen klikker på plads – drej til den ønskede vinkel og stram.','Prøv evt. først med et lille testprint af koblingen (gør muffen kort); justér “Frigang i drejeleddet”, hvis den er for stram eller løs.','Rør: fx 50 mm HT-afløbsrør eller aluminiumsrør. Lim eller skru rørene fast i mufferne, hvis de skal sidde helt fast.'],
 });
 
+
+// JULELYS-KROGE
+TOOLS.push({id:'jul',name:'Julelys',dl:'Download STL',
+ init:{},
+ defs:[
+  {k:'ltype',l:'Monteres på',type:'select',opts:[['gutter','Halvrund tagrende'],['roof','Kant på fladt tag']],v:'gutter'},
+  {sec:'Tagrende',show:P=>P.ltype==='gutter'},
+  {k:'gdim',l:'Tagrendens dimension',type:'select',opts:[['100','100 (kant 17 mm)'],['125','125 (kant 17 mm)'],['150','150 (kant 17 mm)'],['190','190 (kant 22 mm)'],['x','Andet mål']],v:'125',show:P=>P.ltype==='gutter'},
+  {k:'bd',l:'Den rullede kants diameter (d)',min:8,max:35,st:0.5,v:17,show:P=>P.ltype==='gutter'},
+  {note:'Mål evt. selv kanten med en skydelære – rullen er ofte lidt mindre end katalogets d. Clipsen klikker på kanten med åbningen ind mod renden.',show:P=>P.ltype==='gutter'},
+  {k:'c',l:'Frigang om kanten',min:0,max:2,st:0.1,v:0.4,show:P=>P.ltype==='gutter'},
+  {k:'gop',l:'Åbningens størrelse (°)',min:60,max:160,st:5,v:110,show:P=>P.ltype==='gutter'},
+  {k:'gdir',l:'Åbningens retning (°)',min:150,max:270,st:5,v:200,show:P=>P.ltype==='gutter'},
+  {sec:'Tagkant',show:P=>P.ltype==='roof'},
+  {k:'E',l:'Kantens tykkelse (inkl. aluprofil)',min:10,max:80,st:0.5,v:27,show:P=>P.ltype==='roof'},
+  {k:'Lg',l:'Klemmens ben (ned ad kanten)',min:12,max:60,st:1,v:25,show:P=>P.ltype==='roof'},
+  {k:'c2',l:'Frigang',min:0,max:2,st:0.1,v:0.4,show:P=>P.ltype==='roof'},
+  {k:'sq2',l:'Klemkraft',min:0,max:2.5,st:0.1,v:0.8,show:P=>P.ltype==='roof'},
+  {k:'ct',l:'Klemmens tykkelse',min:1.6,max:5,st:0.1,v:2.4,show:P=>P.ltype==='roof'},
+  {k:'side',l:'Krog på',type:'select',opts:[['out','Ydersiden'],['in','Indersiden'],['both','Begge sider']],v:'out',show:P=>P.ltype==='roof'},
+  {k:'hpos',l:'Krogens højde på benet (0 = top, 1 = bund)',min:0.1,max:1,st:0.05,v:0.6,show:P=>P.ltype==='roof'},
+  {sec:'Krog'},
+  {k:'htype',l:'Type',type:'select',opts:[['j','Åben krog'],['clip','Klik-ring til kablet']],v:'j'},
+  {k:'drop',l:'Afstand ned til krogen',min:0,max:60,st:1,v:12},
+  {k:'hr',l:'Krogens indvendige radius',min:2,max:15,st:0.5,v:5,show:P=>P.htype==='j'},
+  {k:'tip',l:'Spidsens højde',min:0,max:15,st:0.5,v:4,show:P=>P.htype==='j'},
+  {k:'cd',l:'Kablets diameter',min:2,max:15,st:0.1,v:6,show:P=>P.htype==='clip'},
+  {k:'open',l:'Åbning i ringen (°)',min:40,max:120,st:5,v:70,show:P=>P.htype==='clip'},
+  {sec:'Print'},
+  {k:'t',l:'Tykkelse',min:1.6,max:5,st:0.1,v:2.4},
+  {k:'w',l:'Bredde',min:5,max:30,st:0.5,v:10},
+  {k:'count',l:'Antal i filen',min:1,max:40,st:1,v:10},
+ ],
+ after(T,k){const P=T.P;if(k==='gdim'&&P.gdim!=='x'){T.setCtl('bd',P.gdim==='190'?22:17);}},
+ make(P){P.gR={'100':54,'125':62,'150':78,'190':86}[P.gdim]||60;return buildXmasHook(P);},
+ setup(m,S,P){S.mesh(m.view,0x2b7a78);S.mesh(m.ghost,0xc9bfae,null,true);},
+ files(m,P){return [{name:`julelyskrog_${P.ltype==='gutter'?'tagrende_d'+String(P.bd).replace('.',','):'tagkant_'+String(P.E).replace('.',',')}mm_${m.count}stk`,tris:m.tris}];},
+ stats(m,P){return [['Mål (én)',m.dims.map(f1).join(' × ')],['Antal i filen',String(m.count)],[P.ltype==='gutter'?'Til kant':'Til tagkant',`${f1(P.ltype==='gutter'?P.bd:P.E)} mm`]];},
+ tips:P=>['Printes fladt med profilen på printpladen (som i filen) – ingen support, og krogen bliver fjedrende og stærk.',
+   'Brug PETG eller ASA udendørs – PLA bliver blødt i sol og skørt i frost.',
+   P.ltype==='gutter'?'Klik clipsen på tagrendens rullede forkant fra oven, med krogen udad. Sidder den løst, så mindsk frigangen; er den svær at få på, så gør åbningen større.':'Tryk klemmen ned over tagkanten; vulsterne nederst på benene holder den fast. Justér klemkraften, hvis den sidder for løst eller stramt.',
+   'Print et enkelt eksemplar først og prøv det, før du printer resten.'],
+});
+
 // STIKDÅSE
 TOOLS.push({id:'stik',name:'Stikdåse',dl:'Download STL',
  init:{},
@@ -1181,7 +1225,7 @@ ang.oninput=()=>{cur.hudV=+ang.value;applyHud();};
 pp.onclick=()=>{cur.hudV=cur.hud.btnV;applyHud();};
 
 // ---------- Faner ----------
-{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
+{const ORDER=['aeske','skuffer','bakke','grid','holder','skadis','bord','indsats','batteri','kabel','stik','lys','skilt','beslag','adapter','arm','jul'];TOOLS.sort((a,b)=>(ORDER.indexOf(a.id)+99)%99-(ORDER.indexOf(b.id)+99)%99);}
 const tabs=document.getElementById('tabs');
 const ICONS={
  aeske:'<path d="M3.5 9h17v10.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M3.5 9 5 4.5h14L20.5 9"/><path d="M10 13h4"/>',
@@ -1199,6 +1243,7 @@ const ICONS={
  bord:'<rect x="6.5" y="3" width="8" height="13.5" rx="1.6" transform="rotate(12 10.5 9.75)"/><path d="M3 20.5h18M6 20.5l1.6-3.6h8.8l1.6 3.6"/>',
  adapter:'<path d="M4 6h5v12H4zM9 8.5l6-1.5v10l-6-1.5M15 7h5v10h-5"/>',
  arm:'<path d="M5 21v-8.5a3.5 3.5 0 0 1 3.5-3.5H15"/><circle cx="16.5" cy="9" r="2.5"/><path d="M18.3 10.8 21 16"/><path d="M3 21h4"/>',
+ jul:'<path d="M3 5c3 2 6 3 9 3s6-1 9-3"/><path d="M7 7.3v2.2M12 8v2.2M17 7.3v2.2"/><path d="M7 9.5c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5zM12 10.2c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5zM17 9.5c-1.3 1.6-1.3 3.4 0 4.5 1.3-1.1 1.3-2.9 0-4.5z"/>',
  beslag:'<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/><path d="M10.5 7h3M10.5 12h3M10.5 17h3"/><circle cx="6.7" cy="8" r="1"/><circle cx="6.7" cy="16" r="1"/><circle cx="17.3" cy="8" r="1"/><circle cx="17.3" cy="16" r="1"/>'};
 const icon=id=>`<svg viewBox="0 0 24 24">${ICONS[id]||ICONS.aeske}</svg>`;
 for(const T of TOOLS){const b=document.createElement('button');b.innerHTML=icon(T.id)+`<span>${T.name}</span>`;b.title=T.name;b.dataset.id=T.id;b.onclick=()=>{try{location.hash=T.id;}catch(e){}switchTool(T.id);};tabs.appendChild(b);T.tab=b;}

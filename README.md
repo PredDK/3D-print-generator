@@ -23,6 +23,7 @@ Parametriske modeller til 3D-print, der kører direkte i browseren. Vælg mål o
 | **Beslag** | Hængsel der printes samlet (print-in-place), vinkelbeslag med afstivning samt lige, L-, T- og krydsplader – alle med forsænkede skruehuller. |
 | **Adapter** | Slangeadapter mellem to størrelser (fx støvsuger): hver ende kan gå ind i en slange eller uden på et rør, med egen diameter og længde, koniske ender, riller og evt. stopkant. |
 | **Udsugning** | Dele til en udsugningsarm: drejelige vinkelled (0–45°, 0–60°, 0–90°) og albueled (90° halvdele) med klemring, M5-skrue og fingerskrue; fast rørbøjning; lige drejeled; beslag til bordkant (klemme), oven på bordet eller på væggen med hylster (rundt eller dråbeformet hul) og slangestuds; rund sugetragt eller firkantet tragt med filterkammer og gitter. Rørene imellem vælger du selv. |
+| **Julelys** | Kroge til lyskæder: clips til den rullede kant på halvrunde tagrender (100/125/150/190 eller eget mål) og U-klemme til tagkanten på flade tage. Åben krog eller klik-ring til kablet, mange i én fil. |
 | **Skilte** | Skilte og mærker med hævet eller fordybet tekst og evt. ramme. Tape, magneter, skruer eller klemme på hyldekanten. |
 
 Alle mål er i mm.
@@ -40,7 +41,7 @@ Alle mål er i mm.
 
 - **Gem:** gemmer opsætninger i din egen browser.
 - **Delekode:** kopiér en kode, som en anden kan indlæse. Den åbner automatisk den rigtige fane.
-- **Direkte link til en fane:** fx `#skuffer`, `#bakke`, `#holder`, `#indsats`, `#batteri`, `#kabel`, `#stik`, `#lys`, `#skilt`, `#grid`, `#beslag`, `#skadis`, `#bord`, `#adapter`, `#arm`.
+- **Direkte link til en fane:** fx `#skuffer`, `#bakke`, `#holder`, `#indsats`, `#batteri`, `#kabel`, `#stik`, `#lys`, `#skilt`, `#grid`, `#beslag`, `#skadis`, `#bord`, `#adapter`, `#arm`, `#jul`.
 
 ## Kode
 
@@ -54,6 +55,7 @@ Kildekoden ligger opdelt i `src/`:
 - `src/tools3.js` – Gridfinity og beslag
 - `src/tools4.js` – SKÅDIS-tilbehør, skrivebordsting og slangeadapter
 - `src/tools5.js` – udsugningsarm
+- `src/tools6.js` – julelys-kroge
 - `src/app.js` – brugerflade, 3D-visning, download og gem/del
 - `src/shell.html` – HTML og CSS
 

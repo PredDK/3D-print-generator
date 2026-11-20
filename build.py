@@ -8,7 +8,7 @@ from pathlib import Path
 root = Path(__file__).parent
 src = root / "src"
 shell = (src / "shell.html").read_text(encoding="utf-8")
-geom = (src / "geom.js").read_text(encoding="utf-8") + "\n" + (src / "tools.js").read_text(encoding="utf-8") + "\n" + (src / "tools2.js").read_text(encoding="utf-8") + "\n" + (src / "tools3.js").read_text(encoding="utf-8") + "\n" + (src / "tools4.js").read_text(encoding="utf-8") + "\n" + (src / "tools5.js").read_text(encoding="utf-8")
+geom = (src / "geom.js").read_text(encoding="utf-8") + "\n" + (src / "tools.js").read_text(encoding="utf-8") + "\n" + (src / "tools2.js").read_text(encoding="utf-8") + "\n" + (src / "tools3.js").read_text(encoding="utf-8") + "\n" + (src / "tools4.js").read_text(encoding="utf-8") + "\n" + (src / "tools5.js").read_text(encoding="utf-8") + "\n" + (src / "tools6.js").read_text(encoding="utf-8")
 app = (src / "app.js").read_text(encoding="utf-8")
 import re, collections, sys
 names = collections.Counter(re.findall(r"^(?:function\s+([A-Za-z_$][\w$]*)|const\s+([A-Za-z_$][\w$]*)\s*=)", geom + "\n" + app, re.M))
